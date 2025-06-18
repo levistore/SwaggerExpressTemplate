@@ -24,8 +24,8 @@ const swaggerOptions = {
       },
       servers: [
         {
-          url: `http://localhost:${PORT}`,
-          description: 'Development server'
+          url: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${PORT}`,
+          description: process.env.VERCEL_URL ? 'Production server' : 'Development server'
         }
       ]
     }
@@ -34,7 +34,20 @@ const swaggerOptions = {
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Check if running in Vercel production environment
+const isVercelProduction = process.env.VERCEL_ENV === 'production';
+
+// Configure Swagger UI with CDN options when in Vercel production
+const swaggerUiOptions = isVercelProduction ? {
+  customCssUrl: '/api/swagger-ui.css',
+  customJs: [
+    '/api/swagger-ui-bundle.js',
+    '/api/swagger-ui-standalone-preset.js'
+  ]
+} : {};
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOptions));
 
 // Basic route
 app.get('/', (req, res) => {
@@ -50,5 +63,14 @@ app.use('/api/users', usersRoutes);
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`);
+  
+  if (process.env.VERCEL_URL) {
+    console.log(`Swagger documentation available at https://${process.env.VERCEL_URL}/api-docs`);
+  } else {
+    console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`);
+  }
+  
+  if (process.env.VERCEL_ENV) {
+    console.log(`Running in Vercel ${process.env.VERCEL_ENV} environment`);
+  }
 });

@@ -1,6 +1,6 @@
 # Express API with Swagger Documentation
 
-This is a skeleton Express.js project with Swagger API documentation integration. It provides a basic structure for building RESTful APIs with automatic documentation.
+This is a skeleton Express.js project with Swagger API documentation integration. It provides a basic structure for building RESTful APIs with automatic documentation, configured for both local development and Vercel deployment.
 
 ## Features
 
@@ -9,6 +9,7 @@ This is a skeleton Express.js project with Swagger API documentation integration
 - Example API routes with CRUD operations
 - API documentation using JSDoc comments
 - Development mode with auto-restart using nodemon
+- Vercel deployment configuration with CDN for Swagger UI assets
 
 ## Project Structure
 
@@ -17,6 +18,7 @@ This is a skeleton Express.js project with Swagger API documentation integration
 ├── package.json          # Project dependencies and scripts
 ├── routes/               # API route definitions
 │   └── users.js          # User routes with Swagger documentation
+├── vercel.json           # Vercel deployment configuration
 └── README.md             # Project documentation
 ```
 
@@ -57,6 +59,40 @@ npm start
 - API Base URL: http://localhost:3000
 - Swagger Documentation: http://localhost:3000/api-docs
 
+## Vercel Deployment
+
+This project is configured for deployment on Vercel with the following features:
+
+1. **vercel.json Configuration**:
+   - Builds the app.js file using the Node.js runtime
+   - Routes all requests to the Express application
+   - Configures CDN routes for Swagger UI assets
+
+2. **Swagger UI CDN Integration**:
+   - Uses CDN links for Swagger UI CSS and JavaScript files
+   - Improves loading performance in production
+   - Routes configured:
+     - `/api/swagger-ui.css` → CDN CSS file
+     - `/api/swagger-ui-bundle.js` → CDN JS bundle
+     - `/api/swagger-ui-standalone-preset.js` → CDN JS preset
+
+3. **Environment Detection**:
+   - Automatically detects Vercel environment
+   - Uses appropriate server URLs based on environment
+   - Configures Swagger UI differently in production vs development
+
+### Deploying to Vercel
+
+1. Push your code to a Git repository (GitHub, GitLab, or Bitbucket)
+
+2. Import the project in the Vercel dashboard
+
+3. Deploy with default settings (Vercel will detect the Node.js project)
+
+4. Access your API at the provided Vercel URL
+
+5. Access Swagger documentation at `https://your-vercel-url/api-docs`
+
 ## API Endpoints
 
 ### Users
@@ -66,36 +102,6 @@ npm start
 - `POST /api/users` - Create a new user
 - `PUT /api/users/:id` - Update a user
 - `DELETE /api/users/:id` - Delete a user
-
-## Extending the Project
-
-### Adding New Routes
-
-1. Create a new route file in the `routes` directory
-2. Add Swagger JSDoc comments to document your API
-3. Import and use the route in `app.js`
-
-### Customizing Swagger Documentation
-
-You can modify the Swagger configuration in `app.js` to customize the documentation:
-
-```javascript
-const swaggerOptions = {
-  swaggerDefinition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Your API Title',
-      version: 'Your Version',
-      description: 'Your Description',
-      contact: {
-        name: 'Your Name',
-        email: 'your.email@example.com'
-      }
-    }
-  },
-  apis: ['./routes/*.js']
-};
-```
 
 ## License
 
