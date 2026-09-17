@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Explore — Lcode Api</title>
+<meta name="description" content="Kirim request sungguhan ke Lcode Api dari browser: pilih endpoint, isi body, lihat respons dan waktunya.">
+<meta name="theme-color" content="#050505">
+<meta property="og:title" content="API Explore — Lcode Api">
+<meta property="og:description" content="Kirim request sungguhan ke Lcode Api dari browser: pilih endpoint, isi body, lihat respons dan waktunya.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Cpath d='M9 22V10h3.4v9.2H23V22H9Z' fill='%23CCFF00'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script>document.documentElement.className += ' js';</script>
+</head>
+<body>
+
+<!-- lapisan ambience: gradien bergerak pelan, di belakang semua konten -->
+<div class="ambient" aria-hidden="true">
+  <span class="ambient__blob ambient__blob--a"></span>
+  <span class="ambient__blob ambient__blob--b"></span>
+  <span class="ambient__grid"></span>
+</div>
+
+<a class="skip" href="#main">Lompat ke konten</a>
+
+<header class="nav" id="nav">
+  <div class="wrap nav__inner">
+    <a class="brand" href="/" aria-label="Lcode Api, ke beranda">
+      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
+      <span class="brand__text">Lcode <span class="brand__thin">Api</span></span>
+    </a>
+
+    <nav class="nav__links" aria-label="Navigasi utama">
+        <a href="/">Home</a>
+        <a href="/docs">API Docs</a>
+        <a href="/explore" aria-current="page">API Explore</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/profile">Profile</a>
+    </nav>
+
+    <div class="nav__actions">
+      <a class="btn btn--ghost btn--sm" href="/api-docs">
+        <span>Swagger UI</span>
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navMobile" aria-label="Buka menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="nav__mobile" id="navMobile" hidden>
+    <a href="/">Home</a>
+    <a href="/docs">API Docs</a>
+    <a href="/explore" aria-current="page">API Explore</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/profile">Profile</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-head">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal><span class="eyebrow__dot" aria-hidden="true"></span>Playground</p>
+      <h1 class="display" data-reveal data-delay="1">API Explore</h1>
+      <p class="lede" data-reveal data-delay="2">
+        Susun request, tekan Kirim, lihat respons aslinya. Nggak ada mock di
+        halaman ini — requestnya benar-benar sampai ke API yang sama.
+      </p>
+      <div class="meta-row" data-reveal data-delay="3">
+        <span class="meta"><b>8</b> endpoint</span>
+        <span class="meta">Respons <b>live</b></span>
+        <span class="meta">Waktu tempuh <b>diukur</b></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+      <div class="note" data-reveal>
+        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>
+        <span>
+          Endpoint <b>tulis</b> di bawah ini mengubah database production.
+          Datanya nyata: user yang lu bikin bakal beneran tersimpan, dan yang
+          lu hapus hilang permanen. Endpoint yang berbahaya ditandai
+          peringatan sebelum lu menekan Kirim.
+        </span>
+      </div>
+
+      <div class="play" data-reveal data-delay="1" style="margin-top:var(--gap)">
+
+        <div class="play__side">
+          <p class="play__side-label">Endpoint</p>
+          <div class="play__list" id="playList" role="list"></div>
+        </div>
+
+        <div class="play__main">
+          <div class="play__bar">
+            <span class="method" id="playMethod">GET</span>
+            <input class="play__path" id="playPath" type="text" value="/api/users"
+                   spellcheck="false" aria-label="Path request">
+            <button class="btn btn--primary btn--sm" id="playSend" type="button">
+              <span>Kirim</span>
+              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <p class="play__desc" id="playDesc"></p>
+
+          <p class="play__hint" id="playHint" hidden></p>
+
+          <div class="play__field" id="playTokenWrap" hidden>
+            <label for="playToken">Bearer token</label>
+            <input id="playToken" type="text" placeholder="eyJhbGciOi…" spellcheck="false">
+            <p class="play__hint">
+              Belum punya? Pilih <code>POST /api/auth/register</code> di daftar
+              kiri — token-nya langsung terisi otomatis begitu berhasil.
+            </p>
+          </div>
+
+          <div class="play__field" id="playBodyWrap" hidden>
+            <label for="playBody">Request body</label>
+            <textarea id="playBody" spellcheck="false" rows="8"></textarea>
+          </div>
+
+          <p class="play__warn" id="playWarn" hidden>
+            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>
+            <span>
+              Endpoint ini menulis ke database production. Datanya nyata —
+              hapus sendiri kalau nggak dipakai.
+            </span>
+          </p>
+
+          <div class="play__out">
+            <div class="play__out-bar">
+              <span class="play__out-label">Response</span>
+              <span class="chips">
+                <span class="chip" id="playStatus">—</span>
+                <span class="chip chip--muted" id="playTime">—</span>
+              </span>
+            </div>
+            <pre class="code code--out" id="playOut"><code>Belum ada request. Tekan “Kirim”.</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="daftar">
+    <div class="wrap">
+      <header class="section__head" data-reveal>
+        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Daftar cepat</p>
+        <h2 class="h2">Delapan endpoint</h2>
+        <p class="section__sub">
+          Ringkasan saja. Penjelasan lengkap, contoh body, dan daftar
+          error-nya ada di <a href="/docs">API Docs</a>.
+        </p>
+      </header>
+
+      <div class="table" data-reveal data-delay="1">
+        <div class="table__head">
+          <span>Method</span><span>Path</span><span>Akses</span><span>Keterangan</span>
+        </div>
+        <div class="table__body">
+
+          <div class="table__row">
+            <span class="method method--post">POST</span>
+            <code class="path">/api/auth/register</code>
+            <span class="access">publik</span>
+            <span class="desc">Daftar akun, langsung dapat token.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--post">POST</span>
+            <code class="path">/api/auth/login</code>
+            <span class="access">publik</span>
+            <span class="desc">Tukar email dan password jadi token.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--get">GET</span>
+            <code class="path">/api/auth/me</code>
+            <span class="access">bearer</span>
+            <span class="desc">Profil milik token yang dikirim.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--get">GET</span>
+            <code class="path">/api/users</code>
+            <span class="access">publik</span>
+            <span class="desc">Daftar semua user.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--get">GET</span>
+            <code class="path">/api/users/:id</code>
+            <span class="access">publik</span>
+            <span class="desc">Satu user berdasarkan id.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--post">POST</span>
+            <code class="path">/api/users</code>
+            <span class="access">bearer</span>
+            <span class="desc">Bikin user langsung. Password opsional.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--put">PUT</span>
+            <code class="path">/api/users/:id</code>
+            <span class="access">bearer</span>
+            <span class="desc">Ganti nama dan email. Dua-duanya wajib.</span>
+          </div>
+          <div class="table__row">
+            <span class="method method--del">DELETE</span>
+            <code class="path">/api/users/:id</code>
+            <span class="access">bearer</span>
+            <span class="desc">Hapus user permanen.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tips">
+    <div class="wrap">
+      <header class="section__head" data-reveal>
+        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Tips</p>
+        <h2 class="h2">Biar nggak bingung</h2>
+      </header>
+
+      <div class="grid-2" data-reveal data-delay="1">
+        <article class="card">
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.6" cy="10.4" r="3.1" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m7.9 8.1 5.5-5.5M11.6 4.4l1.5 1.5M13.4 2.6l1.4 1.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg></span>
+          <h3 class="card__title">Token ikut ke halaman lain</h3>
+          <p class="card__text">
+            Token yang lu dapat di sini disimpan untuk sesi ini, dan langsung
+            dipakai di <a href="/profile">Profile</a>. Jadi lu nggak perlu
+            salin-tempel dua kali.
+          </p>
+        </article>
+
+        <article class="card">
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 4.6V8l2.4 1.6" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3 class="card__title">Kirim cepat pakai keyboard</h3>
+          <p class="card__text">
+            Fokus di kolom body, lalu tekan <code>Ctrl</code> +
+            <code>Enter</code> (atau <code>Cmd</code> + <code>Enter</code>) buat
+            mengirim tanpa pindah ke tombol.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__inner">
+    <div class="foot__brand">
+      <span class="brand__mark brand__mark--sm"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
+      <span>Lcode Api</span>
+    </div>
+    <nav class="foot__links" aria-label="Navigasi footer">
+      <a href="/">Home</a>
+      <a href="/docs">API Docs</a>
+      <a href="/explore">API Explore</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/profile">Profile</a>
+      <a href="/api-docs">Swagger UI</a>
+      <a href="/api/users">Status</a>
+    </nav>
+    <p class="foot__note">
+      Dibangun di atas Express, Postgres, dan Vercel. Font Inter &amp; JetBrains Mono.
+    </p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="/shell.js"></script>
+<script src="/explore.js"></script>
+</body>
+</html>

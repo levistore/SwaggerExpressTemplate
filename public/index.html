@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lcode Api — One API. Endless possibilities.</title>
-<meta name="description" content="Lcode Api — API manajemen user dengan autentikasi JWT. Delapan endpoint, dokumentasi interaktif, siap dipakai produksi.">
+<title>Lcode Api — API manajemen user dengan auth JWT</title>
+<meta name="description" content="API manajemen user dengan autentikasi JWT. Delapan endpoint, dokumentasi interaktif, dan playground di browser.">
 <meta name="theme-color" content="#050505">
-<meta property="og:title" content="Lcode Api — One API. Endless possibilities.">
-<meta property="og:description" content="API manajemen user dengan autentikasi JWT. Delapan endpoint, dokumentasi interaktif.">
+<meta property="og:title" content="Lcode Api — API manajemen user dengan auth JWT">
+<meta property="og:description" content="API manajemen user dengan autentikasi JWT. Delapan endpoint, dokumentasi interaktif, dan playground di browser.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Cpath d='M9 22V10h3.4v9.2H23V22H9Z' fill='%23CCFF00'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,23 +29,22 @@
 
 <header class="nav" id="nav">
   <div class="wrap nav__inner">
-    <a class="brand" href="#top" aria-label="Lcode Api, ke atas">
-      <span class="brand__mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg>
-      </span>
+    <a class="brand" href="/" aria-label="Lcode Api, ke beranda">
+      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
       <span class="brand__text">Lcode <span class="brand__thin">Api</span></span>
     </a>
 
     <nav class="nav__links" aria-label="Navigasi utama">
-      <a href="#capabilities">Kapabilitas</a>
-      <a href="#playground">Playground</a>
-      <a href="#endpoints">Endpoint</a>
-      <a href="#quickstart">Quickstart</a>
+        <a href="/" aria-current="page">Home</a>
+        <a href="/docs">API Docs</a>
+        <a href="/explore">API Explore</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/profile">Profile</a>
     </nav>
 
     <div class="nav__actions">
       <a class="btn btn--ghost btn--sm" href="/api-docs">
-        <span>Docs</span>
+        <span>Swagger UI</span>
         <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
       <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navMobile" aria-label="Buka menu">
@@ -55,17 +54,16 @@
   </div>
 
   <div class="nav__mobile" id="navMobile" hidden>
-    <a href="#capabilities">Kapabilitas</a>
-    <a href="#playground">Playground</a>
-    <a href="#endpoints">Endpoint</a>
-    <a href="#quickstart">Quickstart</a>
-    <a href="/api-docs">Swagger Docs</a>
+    <a href="/" aria-current="page">Home</a>
+    <a href="/docs">API Docs</a>
+    <a href="/explore">API Explore</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/profile">Profile</a>
   </div>
 </header>
 
 <main id="main">
 
-  <!-- ================= HERO ================= -->
   <section class="hero" id="top">
     <div class="wrap hero__grid">
 
@@ -76,300 +74,210 @@
         </p>
 
         <h1 class="display" data-reveal data-delay="1">
-          <span class="mask"><span class="mask__in">One API.</span></span>
-          <span class="mask"><span class="mask__in"><em>Endless</em> possibilities.</span></span>
+          <span class="mask"><span class="mask__in">Satu API.</span></span>
+          <span class="mask"><span class="mask__in"><em>Delapan</em> endpoint.</span></span>
         </h1>
 
         <p class="lede" data-reveal data-delay="2">
-          API manajemen user dengan autentikasi JWT — satu base URL, delapan endpoint,
-          dokumentasi interaktif. Cepat, terprediksi, dan siap dipakai produksi.
+          API manajemen user dengan autentikasi JWT. Register, login, kelola profil,
+          dan hapus akun — semuanya lewat satu base URL, dengan dokumentasi
+          interaktif dan playground yang jalan di browser.
         </p>
 
         <div class="cta-row" data-reveal data-delay="3">
-          <a class="btn btn--primary" href="/api-docs">
-            <span>Explore Docs</span>
+          <a class="btn btn--primary" href="/docs">
+            <span>Baca API Docs</span>
             <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
-          <a class="btn btn--outline" href="#playground">
-            <span>View Playground</span>
+          <a class="btn btn--outline" href="/explore">
+            <span>Coba di API Explore</span>
           </a>
         </div>
 
-        <!-- strip metrik: semuanya nyata, angka user + latensi diambil live dari API -->
-        <ul class="stats" data-reveal data-delay="4">
-          <li class="stat">
-            <span class="stat__num" id="statEndpoints">8</span>
-            <span class="stat__label">Endpoint aktif</span>
-          </li>
-          <li class="stat">
-            <span class="stat__num" id="statUsers">—</span>
-            <span class="stat__label">User tersimpan</span>
-          </li>
-          <li class="stat">
-            <span class="stat__num" id="statLatency">—</span>
-            <span class="stat__label">Latensi API</span>
-          </li>
-          <li class="stat">
-            <span class="stat__num">7d</span>
-            <span class="stat__label">Umur token</span>
-          </li>
-        </ul>
-
-        <p class="live" id="liveStatus" data-reveal data-delay="5">
+        <p class="live" id="liveStatus" data-reveal data-delay="4">
           <span class="live__dot" aria-hidden="true"></span>
-          <span id="liveText">Menyambung ke API…</span>
+          <span id="liveText">Menghubungi API…</span>
         </p>
       </div>
 
-      <!-- kartu kode: request/response asli dari endpoint register -->
-      <aside class="code-card" data-reveal data-delay="3" aria-label="Contoh request dan response">
-        <div class="code-card__bar">
-          <span class="code-card__label">
-            <span class="method method--post">POST</span>
-            <code>/api/auth/register</code>
-          </span>
-          <button class="copy" type="button" data-copy-target="heroCode" aria-label="Salin contoh kode">
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
-            <span>Salin</span>
-          </button>
+      <div class="hero__copy" data-reveal data-delay="2">
+        <div class="code-card">
+          <div class="code-card__bar">
+            <span class="code-card__label">
+              <span class="method method--get">GET</span>
+              <code>/api/users</code>
+            </span>
+            <span class="chips"><span class="chip chip--ok">200 OK</span></span>
+          </div>
+          <pre class="code"><code>[
+  {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  {
+    "id": 2,
+    "name": "Jane Doe",
+    "email": "jane@example.com"
+  }
+]</code></pre>
         </div>
-        <pre class="code" id="heroCode"><code><span class="c-key">Content-Type</span>: application/json
-
-{
-  <span class="c-str">"name"</span>: <span class="c-str">"Levi"</span>,
-  <span class="c-str">"email"</span>: <span class="c-str">"levi@contoh.com"</span>,
-  <span class="c-str">"password"</span>: <span class="c-str">"••••••••••"</span>
-}
-
-<span class="c-muted">── 201 Created ────────────────</span>
-
-{
-  <span class="c-str">"token"</span>: <span class="c-str">"eyJhbGciOiJIUzI1NiIs…"</span>,
-  <span class="c-str">"tokenType"</span>: <span class="c-str">"Bearer"</span>,
-  <span class="c-str">"expiresIn"</span>: <span class="c-str">"7d"</span>,
-  <span class="c-str">"user"</span>: { <span class="c-str">"id"</span>: <span class="c-num">12</span>, <span class="c-str">"name"</span>: <span class="c-str">"Levi"</span> }
-}</code></pre>
-      </aside>
+      </div>
 
     </div>
   </section>
 
-  <!-- ================= KAPABILITAS (bento) ================= -->
-  <section class="section" id="capabilities">
+  <section class="section section--alt" id="kapabilitas">
     <div class="wrap">
       <header class="section__head" data-reveal>
         <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Kapabilitas</p>
-        <h2 class="h2">Yang benar-benar jalan hari ini</h2>
+        <h2 class="h2">Yang sudah jalan hari ini</h2>
         <p class="section__sub">
-          Nggak ada fitur fiktif di halaman ini. Semua yang tertulis di bawah
-          bisa lu tes sendiri dari browser, langsung dari playground di halaman ini.
+          Semua di bawah ini ada di API yang sedang lu lihat — bukan roadmap.
         </p>
       </header>
 
       <div class="bento">
 
-        <article class="card card--wide" data-reveal>
-          <div class="card__head">
-            <span class="card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.6"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17.5 14.8c2 .6 3.2 2.3 3.2 4.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            </span>
-            <h3 class="card__title">Users API</h3>
-            <p class="card__text">
-              CRUD lengkap di atas tabel <code>users</code>. Baca bebas,
-              tulis butuh token.
-            </p>
-          </div>
-          <ul class="endpoint-mini">
-            <li><span class="method method--get">GET</span><code>/api/users</code><span class="tag">publik</span></li>
-            <li><span class="method method--get">GET</span><code>/api/users/:id</code><span class="tag">publik</span></li>
-            <li><span class="method method--post">POST</span><code>/api/users</code><span class="tag tag--auth">bearer</span></li>
-            <li><span class="method method--put">PUT</span><code>/api/users/:id</code><span class="tag tag--auth">bearer</span></li>
-            <li><span class="method method--del">DELETE</span><code>/api/users/:id</code><span class="tag tag--auth">bearer</span></li>
-          </ul>
+        <article class="card" data-reveal>
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 13.4 3.7v4.4c0 3-2.3 5.3-5.4 6.3-3.1-1-5.4-3.3-5.4-6.3V3.7L8 1.6Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="m5.7 7.9 1.7 1.7 3-3.2" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <h3 class="card__title">Auth JWT dari hari pertama</h3>
+          <p class="card__text">
+            <code>register</code> dan <code>login</code> balikin token bertanda tangan
+            yang berlaku 7 hari. Endpoint tulis dilindungi middleware bearer.
+          </p>
+          <a class="card__link" href="/docs#auth">Lihat di referensi <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </article>
 
         <article class="card" data-reveal data-delay="1">
-          <div class="card__head">
-            <span class="card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2.2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="15" r="1.5" fill="currentColor"/></svg>
-            </span>
-            <h3 class="card__title">Auth JWT</h3>
-            <p class="card__text">
-              Password di-hash <code>scrypt</code> bawaan Node, token ditandatangani
-              HS256 lewat <code>jose</code>. Token berlaku 7 hari.
-            </p>
-          </div>
-          <ul class="endpoint-mini">
-            <li><span class="method method--post">POST</span><code>/api/auth/register</code></li>
-            <li><span class="method method--post">POST</span><code>/api/auth/login</code></li>
-            <li><span class="method method--get">GET</span><code>/api/auth/me</code><span class="tag tag--auth">bearer</span></li>
-          </ul>
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="8" cy="4" rx="5.2" ry="2.2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M2.8 4v8c0 1.2 2.3 2.2 5.2 2.2s5.2-1 5.2-2.2V4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M2.8 8c0 1.2 2.3 2.2 5.2 2.2s5.2-1 5.2-2.2" stroke="currentColor" stroke-width="1.3" fill="none"/></svg></span>
+          <h3 class="card__title">Postgres sungguhan</h3>
+          <p class="card__text">
+            Data tersimpan di Postgres, bukan di memori. Password di-hash
+            scrypt dengan salt per user sebelum menyentuh tabel.
+          </p>
+          <a class="card__link" href="/explore">Uji sendiri <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </article>
 
         <article class="card" data-reveal data-delay="2">
-          <div class="card__head">
-            <span class="card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6.5" rx="7" ry="2.8" stroke="currentColor" stroke-width="1.6"/><path d="M5 6.5v11c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8v-11" stroke="currentColor" stroke-width="1.6"/><path d="M5 12c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8" stroke="currentColor" stroke-width="1.6"/></svg>
-            </span>
-            <h3 class="card__title">Persistensi</h3>
-            <p class="card__text">
-              Data disimpan di Postgres, bukan in-memory. Restart fungsi
-              serverless nggak menghapus apa pun.
-            </p>
-          </div>
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 2.6h4.1c.9 0 1.5.5 1.5 1.3v9.5c0-.7-.6-1.2-1.5-1.2H2.6V2.6Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M13.4 2.6H9.3c-.9 0-1.5.5-1.5 1.3v9.5c0-.7.6-1.2 1.5-1.2h4.1V2.6Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg></span>
+          <h3 class="card__title">Dokumentasi dua lapis</h3>
+          <p class="card__text">
+            Halaman referensi yang enak dibaca manusia, plus Swagger UI
+            dengan tombol <em>Try it out</em> untuk tiap endpoint.
+          </p>
+          <a class="card__link" href="/api-docs">Buka Swagger UI <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         </article>
 
         <article class="card" data-reveal data-delay="3">
-          <div class="card__head">
-            <span class="card__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v18H6.5A2.5 2.5 0 0 1 4 18.5v-13Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 3h5.5A2.5 2.5 0 0 1 20 5.5v13a2.5 2.5 0 0 1-2.5 2.5H12" stroke="currentColor" stroke-width="1.6"/><path d="M7.5 8h2M7.5 12h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            </span>
-            <h3 class="card__title">OpenAPI 3.0</h3>
-            <p class="card__text">
-              Spesifikasi di-generate dari komentar rute, jadi selalu sinkron
-              dengan kode. Swagger UI bisa dipakai langsung.
-            </p>
-          </div>
-          <a class="card__link" href="/api-docs">
-            <span>Buka Swagger UI</span>
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </a>
-        </article>
-
-        <article class="card card--stat" data-reveal data-delay="4">
-          <span class="stat-big" id="statBigUsers">—</span>
-          <span class="stat-big__label">user tersimpan di Postgres</span>
-          <span class="stat-big__hint">diambil live dari <code>GET /api/users</code></span>
-        </article>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= PLAYGROUND ================= -->
-  <section class="section section--alt" id="playground">
-    <div class="wrap">
-      <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Playground</p>
-        <h2 class="h2">Coba tanpa buka terminal</h2>
-        <p class="section__sub">
-          Request dikirim ke API yang sama, dari origin yang sama. Pilih endpoint,
-          ubah body-nya, tekan Kirim.
-        </p>
-      </header>
-
-      <div class="play" data-reveal data-delay="1">
-
-        <div class="play__side">
-          <p class="play__side-label">Endpoint</p>
-          <div class="play__list" id="playList" role="list"></div>
-        </div>
-
-        <div class="play__main">
-          <div class="play__bar">
-            <span class="method" id="playMethod">GET</span>
-            <input class="play__path" id="playPath" type="text" value="/api/users" spellcheck="false" aria-label="Path request">
-            <button class="btn btn--primary btn--sm" id="playSend" type="button">
-              <span>Kirim</span>
-              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4 4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-
-          <p class="play__desc" id="playDesc"></p>
-
-          <div class="play__field" id="playTokenWrap" hidden>
-            <label for="playToken">Bearer token</label>
-            <input id="playToken" type="text" placeholder="eyJhbGciOi…" spellcheck="false">
-            <p class="play__hint">Belum punya? Jalankan <code>POST /api/auth/register</code> di bawah — token-nya terisi otomatis.</p>
-          </div>
-
-          <div class="play__field" id="playBodyWrap" hidden>
-            <label for="playBody">Request body</label>
-            <textarea id="playBody" spellcheck="false" rows="8"></textarea>
-          </div>
-
-          <p class="play__warn" id="playWarn" hidden>
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>
-            <span>Endpoint ini menulis ke database production. Datanya nyata — hapus sendiri kalau nggak dipakai.</span>
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.8" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m4.6 6.4 1.8 1.8-1.8 1.8" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.4 10.2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+          <h3 class="card__title">Playground tanpa terminal</h3>
+          <p class="card__text">
+            Susun request, isi body, tekan Kirim. Responsnya datang dari API
+            yang sama, lengkap dengan status code dan waktu tempuh.
           </p>
+          <a class="card__link" href="/explore">Buka API Explore <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </article>
 
-          <div class="play__out">
-            <div class="play__out-bar">
-              <span class="play__out-label">Response</span>
-              <span class="chips">
-                <span class="chip" id="playStatus">—</span>
-                <span class="chip chip--muted" id="playTime">—</span>
-              </span>
-            </div>
-            <pre class="code code--out" id="playOut"><code>Belum ada request. Tekan “Kirim”.</code></pre>
-          </div>
-        </div>
+        <article class="card card--wide" data-reveal data-delay="4">
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.6 12.4h6.9a2.6 2.6 0 0 0 .3-5.2A3.9 3.9 0 0 0 4.3 6.6a2.9 2.9 0 0 0 .3 5.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg></span>
+          <h3 class="card__title">Serverless, tanpa VPS</h3>
+          <p class="card__text">
+            Jalan sebagai fungsi di Vercel dengan database Neon. Nggak ada
+            server yang perlu dijaga tetap hidup — dan nggak ada biaya tetap.
+          </p>
+        </article>
 
       </div>
     </div>
   </section>
 
-  <!-- ================= REFERENSI ENDPOINT ================= -->
-  <section class="section" id="endpoints">
+  <section class="section" id="angka">
     <div class="wrap">
       <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Referensi</p>
-        <h2 class="h2">Delapan endpoint</h2>
-        <p class="section__sub">Base URL: <code id="baseUrl">/</code></p>
-      </header>
-
-      <div class="table" data-reveal data-delay="1">
-        <div class="table__head">
-          <span>Method</span><span>Path</span><span>Akses</span><span>Keterangan</span>
-        </div>
-        <div class="table__body" id="tableBody"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= QUICKSTART ================= -->
-  <section class="section section--alt" id="quickstart">
-    <div class="wrap">
-      <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Quickstart</p>
-        <h2 class="h2">Tiga baris, langsung jalan</h2>
+        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Live</p>
+        <h2 class="h2">Angka yang diambil saat halaman ini dibuka</h2>
         <p class="section__sub">
-          Daftar akun, ambil token, pakai buat request yang butuh autentikasi.
+          Nggak ada angka yang ditempel di kode. Dua dari tiga nilai di bawah
+          datang dari <code>GET /api/users</code> waktu halaman ini dimuat.
         </p>
       </header>
 
-      <div class="quick" data-reveal data-delay="1">
-        <div class="tabs" role="tablist" aria-label="Pilihan bahasa">
-          <button class="tab is-active" role="tab" aria-selected="true" data-tab="curl">curl</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab="js">JavaScript</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab="node">Node</button>
-        </div>
+      <ul class="stats" data-reveal data-delay="1">
+        <li class="stat">
+          <span class="stat__num">8</span>
+          <span class="stat__label">Endpoint aktif</span>
+        </li>
+        <li class="stat">
+          <span class="stat__num" id="statUsers">—</span>
+          <span class="stat__label">User tersimpan</span>
+        </li>
+        <li class="stat">
+          <span class="stat__num" id="statLatency">—</span>
+          <span class="stat__label">Waktu respons</span>
+        </li>
+        <li class="stat">
+          <span class="stat__num">7 hari</span>
+          <span class="stat__label">Masa berlaku token</span>
+        </li>
+      </ul>
 
-        <div class="quick__panel">
-          <button class="copy copy--float" type="button" data-copy-target="quickCode" aria-label="Salin kode">
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
-            <span>Salin</span>
-          </button>
-          <pre class="code" id="quickCode"><code></code></pre>
-        </div>
+      <div class="bento" style="margin-top:var(--gap)">
+        <article class="card card--stat card--wide" data-reveal data-delay="2">
+          <span class="stat-big__label">User yang tersimpan sekarang</span>
+          <span class="stat-big" id="statBigUsers">—</span>
+          <span class="stat-big__hint">
+            Dihitung dari respons API barusan, bukan dari cache.
+          </span>
+        </article>
       </div>
     </div>
   </section>
 
-  <!-- ================= CTA PENUTUP ================= -->
+  <section class="section section--alt" id="alur">
+    <div class="wrap">
+      <header class="section__head" data-reveal>
+        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Alur</p>
+        <h2 class="h2">Dari nol ke request terautentikasi</h2>
+      </header>
+
+      <div class="grid-2">
+        <article class="card" data-reveal>
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.6" r="2.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M3.2 13.4c.5-2.3 2.5-3.6 4.8-3.6s4.3 1.3 4.8 3.6" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg></span>
+          <h3 class="card__title">1 — Daftar</h3>
+          <p class="card__text">
+            Kirim <code>name</code>, <code>email</code>, dan password minimal
+            8 karakter ke <code>POST /api/auth/register</code>. Responsnya
+            sudah berisi token.
+          </p>
+        </article>
+
+        <article class="card" data-reveal data-delay="1">
+          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8l1-5.5Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg></span>
+          <h3 class="card__title">2 — Pakai token</h3>
+          <p class="card__text">
+            Tempel token di header <code>Authorization: Bearer &lt;token&gt;</code> untuk
+            endpoint yang butuh. Halaman
+            <a href="/profile">Profile</a> nyimpen token-nya untuk lu.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
   <section class="closer">
     <div class="wrap closer__inner" data-reveal>
       <h2 class="h2 h2--tight">Mulai dari dokumentasinya.</h2>
       <p class="section__sub">
-        Swagger UI-nya sudah terisi semua endpoint, lengkap dengan contoh body
-        dan tombol <em>Try it out</em>.
+        Referensi lengkap delapan endpoint, atau langsung kirim request
+        sungguhan dari API Explore.
       </p>
       <div class="cta-row cta-row--center">
-        <a class="btn btn--primary" href="/api-docs">
-          <span>Explore Docs</span>
+        <a class="btn btn--primary" href="/docs">
+          <span>Buka API Docs</span>
           <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a class="btn btn--outline" href="#playground"><span>View Playground</span></a>
+        <a class="btn btn--outline" href="/explore"><span>Coba API Explore</span></a>
       </div>
     </div>
   </section>
@@ -379,15 +287,16 @@
 <footer class="foot">
   <div class="wrap foot__inner">
     <div class="foot__brand">
-      <span class="brand__mark brand__mark--sm" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg>
-      </span>
+      <span class="brand__mark brand__mark--sm"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
       <span>Lcode Api</span>
     </div>
     <nav class="foot__links" aria-label="Navigasi footer">
-      <a href="/api-docs">Docs</a>
-      <a href="#playground">Playground</a>
-      <a href="#endpoints">Endpoint</a>
+      <a href="/">Home</a>
+      <a href="/docs">API Docs</a>
+      <a href="/explore">API Explore</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/profile">Profile</a>
+      <a href="/api-docs">Swagger UI</a>
       <a href="/api/users">Status</a>
     </nav>
     <p class="foot__note">
@@ -398,6 +307,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-<script src="/main.js"></script>
+<script src="/shell.js"></script>
+<script src="/home.js"></script>
 </body>
 </html>
