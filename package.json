@@ -20,6 +20,7 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^4.18.2",
+    "jose": "^4.15.9",
     "pg": "^8.23.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0"

@@ -56,8 +56,10 @@ app.get('/', (req, res) => {
 
 // Import routes
 const usersRoutes = require('./routes/users');
+const authRoutes = require('./routes/auth');
 
 // Use routes
+app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 
 // Start server

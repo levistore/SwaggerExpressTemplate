@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
+const { requireAuth } = require('../middleware/auth');
 
 const COLUMNS = 'id, name, email';
+
+// Kode error Postgres untuk unique violation (email sudah dipakai).
+const UNIQUE_VIOLATION = '23505';
 
 // id di Postgres bertipe integer (int4). Angka di luar rentang ini bikin
 // Postgres error 500, padahal di versi in-memory dulu cuma "nggak ketemu" (404).
@@ -117,6 +121,8 @@ router.get('/:id', async (req, res) => {
  *   post:
  *     summary: Create a new user
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -131,9 +137,13 @@ router.get('/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/User'
  *       400:
- *         description: Some server error
+ *         description: Name or email is missing
+ *       401:
+ *         description: Bearer token nggak ada atau nggak valid
+ *       409:
+ *         description: Email sudah dipakai user lain
  */
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { name, email } = req.body;
 
   if (!name || !email) {
@@ -149,6 +159,11 @@ router.post('/', async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (err) {
+    // Sejak 002_auth.sql email unik (case-insensitive). Kalau nggak
+    // ditangani di sini, error Postgres jadi 500 padahal masalahnya di input.
+    if (err.code === UNIQUE_VIOLATION) {
+      return res.status(409).json({ message: 'Email is already registered' });
+    }
     console.error('[POST /api/users]', err.message);
     res.status(500).json({ message: 'Failed to create user' });
   }
@@ -160,6 +175,8 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Update a user by id
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -183,9 +200,13 @@ router.post('/', async (req, res) => {
  *       404:
  *         description: The user was not found
  *       400:
- *         description: Some error happened
+ *         description: Name or email is missing
+ *       401:
+ *         description: Bearer token nggak ada atau nggak valid
+ *       409:
+ *         description: Email sudah dipakai user lain
  */
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const { name, email } = req.body;
 
   // Urutan cek dipertahankan seperti aslinya: body dulu (400), baru id (404).
@@ -210,6 +231,9 @@ router.put('/:id', async (req, res) => {
     }
     res.json(rows[0]);
   } catch (err) {
+    if (err.code === UNIQUE_VIOLATION) {
+      return res.status(409).json({ message: 'Email is already registered' });
+    }
     console.error('[PUT /api/users/:id]', err.message);
     res.status(500).json({ message: 'Failed to update user' });
   }
@@ -221,6 +245,8 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Remove a user by id
  *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -231,10 +257,12 @@ router.put('/:id', async (req, res) => {
  *     responses:
  *       200:
  *         description: The user was deleted
+ *       401:
+ *         description: Bearer token nggak ada atau nggak valid
  *       404:
  *         description: The user was not found
  */
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) {
     return res.status(404).json({ message: 'User not found' });
