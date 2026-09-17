@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
+const { hashPassword, MIN_PASSWORD_LENGTH } = require('../lib/auth');
 
 const COLUMNS = 'id, name, email';
 
@@ -46,6 +47,34 @@ function parseId(raw) {
  *         id: 1
  *         name: John Doe
  *         email: john@example.com
+ *     CreateUserRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *         - email
+ *       properties:
+ *         name:
+ *           type: string
+ *           example: Budi
+ *         email:
+ *           type: string
+ *           example: budi@example.com
+ *         password:
+ *           type: string
+ *           format: password
+ *           minLength: 8
+ *           description: |
+ *             Opsional. Kalau diisi, user ini bisa login lewat
+ *             /api/auth/login. Kalau nggak diisi, akunnya tetap dibuat
+ *             tapi TIDAK punya password dan nggak bisa login.
+ *     UserCreated:
+ *       allOf:
+ *         - $ref: '#/components/schemas/User'
+ *         - type: object
+ *           properties:
+ *             hasPassword:
+ *               type: boolean
+ *               description: true kalau user ini punya password dan bisa login
  */
 
 /**
@@ -128,36 +157,63 @@ router.get('/:id', async (req, res) => {
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/User'
+ *             $ref: '#/components/schemas/CreateUserRequest'
  *     responses:
  *       201:
- *         description: The user was successfully created
+ *         description: |
+ *           User dibuat. Cek `hasPassword`: kalau `false`, user ini nggak
+ *           punya password dan TIDAK bisa login lewat /api/auth/login.
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/UserCreated'
  *       400:
- *         description: Name or email is missing
+ *         description: |
+ *           Name/email nggak diisi, atau password diisi tapi kurang dari
+ *           8 karakter
  *       401:
  *         description: Bearer token nggak ada atau nggak valid
  *       409:
  *         description: Email sudah dipakai user lain
  */
 router.post('/', requireAuth, async (req, res) => {
-  const { name, email } = req.body;
+  const { name, email, password } = req.body || {};
 
-  if (!name || !email) {
+  // Di-trim dulu supaya sama persis dengan register. Login mencocokkan
+  // lower(email) = lower(trim(input)), jadi email berspasi nggak akan
+  // pernah ketemu kalau disimpan apa adanya.
+  const cleanName = typeof name === 'string' ? name.trim() : name;
+  const cleanEmail = typeof email === 'string' ? email.trim() : email;
+
+  if (!cleanName || !cleanEmail) {
     return res.status(400).json({ message: 'Name and email are required' });
+  }
+
+  // password OPSIONAL — inilah celah yang diperbaiki di sini. Sebelumnya
+  // endpoint ini bikin baris user tanpa password_hash, jadi akunnya muncul
+  // di daftar tapi nggak bisa login. Sekarang kalau password dikirim, dia
+  // divalidasi dan di-hash dengan aturan yang sama dengan /api/auth/register.
+  let passwordHash = null;
+  if (password !== undefined && password !== null) {
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
+    }
+    passwordHash = await hashPassword(password);
   }
 
   try {
     // id dari sequence Postgres, bukan users.length + 1 kayak sebelumnya —
     // versi lama bikin id duplikat begitu ada user yang dihapus.
     const { rows } = await db.query(
-      `insert into users (name, email) values ($1, $2) returning ${COLUMNS}`,
-      [name, email]
+      `insert into users (name, email, password_hash) values ($1, $2, $3) returning ${COLUMNS}`,
+      [cleanName, cleanEmail, passwordHash]
     );
-    res.status(201).json(rows[0]);
+
+    const user = rows[0];
+    // hasPassword bikin status akun ini eksplisit, bukan diam-diam setengah jadi.
+    res.status(201).json({ ...user, hasPassword: passwordHash !== null });
   } catch (err) {
     // Sejak 002_auth.sql email unik (case-insensitive). Kalau nggak
     // ditangani di sini, error Postgres jadi 500 padahal masalahnya di input.
