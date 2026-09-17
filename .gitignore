@@ -1,10 +1,23 @@
 node_modules/
+
+# log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.env
-.env.local
-.env.*.local
-.DS_Store
 *.log
+
+# OS
+.DS_Store
+
+# Vercel CLI
 .vercel
+
+# env: semua file .env di-ignore, KECUALI template-nya.
+# .env.local dari Vercel CLI isinya VERCEL_OIDC_TOKEN — jangan sampai ke-commit.
+.env*
+!.env.example
+
+# skill agent yang disuntik Neon CLI — nggak perlu masuk repo
+.agents/
+.claude/
+skills-lock.json

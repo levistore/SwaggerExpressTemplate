@@ -1,0 +1,10 @@
+# Jangan pernah upload kredensial ke Vercel.
+# Env runtime diambil dari Settings -> Environment Variables, bukan dari file ini.
+.env*
+!.env.example
+
+.vercel
+.git
+.agents
+.claude
+skills-lock.json

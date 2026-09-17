@@ -4,8 +4,9 @@
   "description": "Express API with Swagger documentation",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
+    "start": "node --env-file-if-exists=.env.local --env-file-if-exists=.env app.js",
+    "dev": "nodemon --exec \"node --env-file-if-exists=.env.local --env-file-if-exists=.env\" app.js",
+    "db:migrate": "node --env-file-if-exists=.env.local --env-file-if-exists=.env scripts/migrate.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -19,6 +20,7 @@
   "type": "commonjs",
   "dependencies": {
     "express": "^4.18.2",
+    "pg": "^8.23.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0"
   },

@@ -1,5 +1,22 @@
 const express = require('express');
 const router = express.Router();
+const db = require('../lib/db');
+
+const COLUMNS = 'id, name, email';
+
+// id di Postgres bertipe integer (int4). Angka di luar rentang ini bikin
+// Postgres error 500, padahal di versi in-memory dulu cuma "nggak ketemu" (404).
+const MAX_INT4 = 2147483647;
+
+/**
+ * parseInt yang aman: balikin null kalau bukan integer yang masuk akal.
+ * Perilaku lama dipertahankan — id non-numerik jadi 404, bukan 500.
+ */
+function parseId(raw) {
+  const id = parseInt(raw, 10);
+  if (!Number.isInteger(id) || id < 1 || id > MAX_INT4) return null;
+  return id;
+}
 
 /**
  * @swagger
@@ -27,12 +44,6 @@ const router = express.Router();
  *         email: john@example.com
  */
 
-// Mock users data
-let users = [
-  { id: 1, name: 'John Doe', email: 'john@example.com' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
-];
-
 /**
  * @swagger
  * /api/users:
@@ -49,8 +60,14 @@ let users = [
  *               items:
  *                 $ref: '#/components/schemas/User'
  */
-router.get('/', (req, res) => {
-  res.json(users);
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await db.query(`select ${COLUMNS} from users order by id`);
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /api/users]', err.message);
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
 });
 
 /**
@@ -76,15 +93,22 @@ router.get('/', (req, res) => {
  *       404:
  *         description: The user was not found
  */
-router.get('/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(user => user.id === id);
-  
-  if (!user) {
+router.get('/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
     return res.status(404).json({ message: 'User not found' });
   }
-  
-  res.json(user);
+
+  try {
+    const { rows } = await db.query(`select ${COLUMNS} from users where id = $1`, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[GET /api/users/:id]', err.message);
+    res.status(500).json({ message: 'Failed to fetch user' });
+  }
 });
 
 /**
@@ -109,21 +133,25 @@ router.get('/:id', (req, res) => {
  *       400:
  *         description: Some server error
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { name, email } = req.body;
-  
+
   if (!name || !email) {
     return res.status(400).json({ message: 'Name and email are required' });
   }
-  
-  const newUser = {
-    id: users.length + 1,
-    name,
-    email
-  };
-  
-  users.push(newUser);
-  res.status(201).json(newUser);
+
+  try {
+    // id dari sequence Postgres, bukan users.length + 1 kayak sebelumnya —
+    // versi lama bikin id duplikat begitu ada user yang dihapus.
+    const { rows } = await db.query(
+      `insert into users (name, email) values ($1, $2) returning ${COLUMNS}`,
+      [name, email]
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /api/users]', err.message);
+    res.status(500).json({ message: 'Failed to create user' });
+  }
 });
 
 /**
@@ -157,28 +185,34 @@ router.post('/', (req, res) => {
  *       400:
  *         description: Some error happened
  */
-router.put('/:id', (req, res) => {
-  const id = parseInt(req.params.id);
+router.put('/:id', async (req, res) => {
   const { name, email } = req.body;
-  
+
+  // Urutan cek dipertahankan seperti aslinya: body dulu (400), baru id (404).
   if (!name || !email) {
     return res.status(400).json({ message: 'Name and email are required' });
   }
-  
-  const userIndex = users.findIndex(user => user.id === id);
-  
-  if (userIndex === -1) {
+
+  const id = parseId(req.params.id);
+  if (id === null) {
     return res.status(404).json({ message: 'User not found' });
   }
-  
-  const updatedUser = {
-    id,
-    name,
-    email
-  };
-  
-  users[userIndex] = updatedUser;
-  res.json(updatedUser);
+
+  try {
+    // returning bikin Postgres balikin baris hasil update; rowCount 0 = nggak ada
+    // user dengan id itu, jadi nggak perlu query cek dulu.
+    const { rows } = await db.query(
+      `update users set name = $1, email = $2 where id = $3 returning ${COLUMNS}`,
+      [name, email, id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PUT /api/users/:id]', err.message);
+    res.status(500).json({ message: 'Failed to update user' });
+  }
 });
 
 /**
@@ -200,16 +234,22 @@ router.put('/:id', (req, res) => {
  *       404:
  *         description: The user was not found
  */
-router.delete('/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const userIndex = users.findIndex(user => user.id === id);
-  
-  if (userIndex === -1) {
+router.delete('/:id', async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
     return res.status(404).json({ message: 'User not found' });
   }
-  
-  users = users.filter(user => user.id !== id);
-  res.json({ message: 'User deleted successfully' });
+
+  try {
+    const { rowCount } = await db.query('delete from users where id = $1 returning id', [id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error('[DELETE /api/users/:id]', err.message);
+    res.status(500).json({ message: 'Failed to delete user' });
+  }
 });
 
 module.exports = router;
