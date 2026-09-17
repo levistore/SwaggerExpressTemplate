@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
@@ -9,6 +10,17 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Landing page statis (public/) — index.html dilayani di '/'
+// Nama file nggak di-hash, jadi jangan cache lama: cukup revalidate (ETag -> 304).
+app.use(express.static(path.join(__dirname, 'public'), {
+  extensions: ['html'],
+  etag: true,
+  lastModified: true,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+  }
+}));
 
 // Swagger configuration
 const swaggerOptions = {
@@ -48,11 +60,6 @@ const swaggerUiOptions = isVercelProduction ? {
 } : {};
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOptions));
-
-// Basic route
-app.get('/', (req, res) => {
-  res.send('Welcome to Express API with Swagger Documentation');
-});
 
 // Import routes
 const usersRoutes = require('./routes/users');
