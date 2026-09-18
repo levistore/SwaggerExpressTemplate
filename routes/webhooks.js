@@ -212,7 +212,9 @@ router.post('/:id/rotate', async (req, res) => {
  *       200: { description: Hasil delivery }
  *       404: { description: Tidak ditemukan }
  */
-router.post('/:id/test', async (req, res) => {
+// Webhook test = outbound request primitive → limiter lebih ketat (10/m).
+const { rateLimit: _rl } = require('../lib/ratelimit');
+router.post('/:id/test', _rl(10, { scope: 'webhook_test' }), async (req, res) => {
   const id = cleanUuid(req.params.id);
   if (!id) return res.status(404).json({ message: 'Webhook tidak ditemukan.' });
   const { rows } = await db.query(
@@ -235,6 +237,7 @@ router.post('/:id/test', async (req, res) => {
     status = r ? r.status : null;
     ok = !!status && status >= 200 && status < 300;
   } catch (err) { category = err.code || 'WEBHOOK_FAILED'; }
+  require('../lib/metrics').recordWebhookDelivery({ ok, retry: false, durationMs: Date.now() - t0 });
   await db.query(
     `insert into webhook_deliveries (webhook_id, event_id, event_type, status, ok, error_category, duration_ms)
      values ($1,$2,'WEBHOOK_TEST',$3,$4,$5,$6) on conflict (event_id) do nothing`,

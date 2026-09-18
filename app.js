@@ -237,6 +237,7 @@ const downloadRoutes = require('./routes/download');
 const keysRoutes = require('./routes/keys');
 const dashboardRoutes = require('./routes/dashboard');
 const webhooksRoutes = require('./routes/webhooks');
+const opsRoutes = require('./routes/ops');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -257,6 +258,7 @@ app.use('/api/v1/users', envelopedRouter(usersRoutes));
 app.use('/api/v1/download', envelopedRouter(downloadRoutes));
 app.use('/api/v1/keys', envelopedRouter(keysRoutes));
 app.use('/api/v1/webhooks', envelopedRouter(webhooksRoutes));
+app.use('/api/v1/ops', envelopedRouter(opsRoutes));
 app.use('/api/v1/dashboard', envelopedRouter(dashboardRoutes));
 
 // Health check — status nyata (DB di-ping beneran, nggak hardcode ok)

@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Syntax validation
+        run: for f in $(git ls-files '*.js' ':!node_modules'); do node --check "$f"; done
+      - name: OpenAPI spec builds & non-empty
+        run: |
+          node -e "
+            const swaggerJsDoc = require('swagger-jsdoc');
+            const spec = swaggerJsDoc({ swaggerDefinition: { openapi: '3.0.0', info: { title: 'LCODE API', version: '6.0.0' } }, apis: ['./routes/*.js'] });
+            if (!Object.keys(spec.paths).length) throw new Error('OpenAPI paths kosong');
+            console.log('OpenAPI OK — paths:', Object.keys(spec.paths).length);
+          "
+      # Integration suites butuh database. Jalankan hanya bila secret tersedia
+      # (repository secret NEON_DATABASE_URL). Syntax/audit/OpenAPI tetap gating.
+      - name: Migrations + full test suite (requires DB secret)
+        if: ${{ env.NEON_DATABASE_URL != '' }}
+        env:
+          JWT_SECRET: ci-only-secret-for-integration-tests-0123456789abcdef
+          DATABASE_URL: ${{ env.NEON_DATABASE_URL }}
+        run: |
+          node scripts/migrate.js
+          node -e "process.env.PORT=3311; require('./app');" &
+          sleep 3
+          BASE=http://127.0.0.1:3311 node tests/security.test.js
+          BASE=http://127.0.0.1:3311 node tests/phase2.test.js
+          BASE=http://127.0.0.1:3311 node tests/phase3.test.js
+          BASE=http://127.0.0.1:3311 node tests/phase4.test.js
+          BASE=http://127.0.0.1:3311 node tests/phase5.test.js
+          BASE=http://127.0.0.1:3311 node tests/phase6.test.js
+          BASE=http://127.0.0.1:3311 node tests/phase7.test.js
+      - name: npm audit
+        run: npm audit --audit-level=high

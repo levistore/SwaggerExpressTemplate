@@ -162,6 +162,31 @@ logout-all.
 
 
 
+
+### Observability & Operations (Phase 7)
+
+- **Metrics** (`lib/metrics.js`): agregat realtime bounded (ring 2000 request)
+  — latensi p50/p95, distribusi status, error kategori, rejection (quota/
+  rate-limit/SSRF), provider & webhook counters. **Instance-local**, hilang
+  saat cold-start; riwayat tetap dari `api_usage` (tanpa duplikasi tracking).
+- **Ops endpoint**: `GET /api/v1/ops/summary?range=24h|7d|30d` — traffic,
+  success rate, latensi (avg+p95 dari `api_usage`), top endpoints, webhook
+  deliveries, provider health + circuit state. User-scoped (anti-IDOR),
+  range bounded (tanpa arbitrary date), parameterized SQL, rate limit 60/m.
+- **Request log**: kini menyertakan `user_id` + `key_id` + `request_id`
+  (tanpa token/credential/body).
+- **Webhook test** (`POST /api/webhooks/{id}/test`): rate limit ketat 10/m
+  (outbound primitive), ownership + SSRF + timeout + bounded response.
+- **Dashboard**: tab baru "Ops" (`/dashboard?tab=ops`) — API Health, Traffic,
+  Providers, Webhooks; vanilla JS, SVG icons, tanpa data demo.
+- **CI**: `.github/workflows/ci.yml` — Node 22, `npm ci`, syntax check semua
+  file JS, build+validasi OpenAPI, migration+full test suite (jalan bila
+  secret `NEON_DATABASE_URL` diset), `npm audit --audit-level=high`.
+- **Database**: EXPLAIN ANALYZE query terpanjang (ops/dashboard) — Index Scan
+  `api_usage_user_created_idx`, 0 seq scan, <1ms; tidak perlu index baru.
+- **Docs**: `docs/OPERATIONS.md` (health, rollback, incident response,
+  security incident), `docs/DEPLOYMENT.md` (checklist deploy/verify).
+
 ### API contracts, idempotency & webhooks (Phase 6)
 
 - **Idempotency**: header `Idempotency-Key` (8..255 `[A-Za-z0-9._~-]`) pada

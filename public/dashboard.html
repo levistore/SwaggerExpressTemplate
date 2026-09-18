@@ -97,6 +97,20 @@
     </section>
 
     <!-- ================= Requests ================= -->
+    <section data-tab="ops" class="dash-tab" hidden>
+      <div class="dash-head">
+        <h2>Ops</h2>
+        <p class="muted">Metrik operasional akun lu — traffic, error, latensi, provider, webhook.</p>
+      </div>
+      <div class="seg" role="tablist" id="opsRange" style="margin-bottom:12px;">
+        <button class="seg__btn is-active" data-opsrange="24h">24 jam</button>
+        <button class="seg__btn" data-opsrange="7d">7 hari</button>
+        <button class="seg__btn" data-opsrange="30d">30 hari</button>
+      </div>
+      <div id="opsBody" class="stack-lg">
+        <p class="muted empty-state">Memuat metrik…</p>
+      </div>
+    </section>
     <section data-tab="requests" class="dash-tab" hidden>
       <h1 class="page-title">Requests</h1>
       <p class="muted">Riwayat request milik lu. Tanpa header/credential — hanya metadata operasional.</p>

@@ -41,7 +41,9 @@
     if (window.history.replaceState) {
       window.history.replaceState(null, '', '/dashboard?tab=' + name);
     }
-    load(name);
+    var loaders = { overview: loadOverview, keys: loadKeys, usage: loadUsage, requests: loadRequests, ops: loadOps };
+    var fn = loaders[name] || loadOverview;
+    fn();
   }
 
   // ------------------------------------------------------------------
@@ -206,6 +208,68 @@
   // ------------------------------------------------------------------
   // boot
   // ------------------------------------------------------------------
+
+  // ------------------------------------------------------------------
+  // Ops (Phase 7)
+  // ------------------------------------------------------------------
+  var opsRange = '24h';
+  function renderOps(m) {
+    var b = q('#opsBody');
+    var t = m.traffic || {};
+    var w = m.webhooks || {};
+    var prov = m.providers || {};
+    var rt = m.realtime || {};
+    function stat(label, val) {
+      return '<div class="ov-stat"><span class="ov-stat__label">' + esc(label) + '</span>' +
+             '<strong class="ov-stat__value">' + esc(String(val === undefined || val === null ? '-' : val)) + '</strong></div>';
+    }
+    var provRows = Object.keys(prov).length
+      ? Object.keys(prov).map(function (n) {
+          var p = prov[n];
+          return '<tr><td>' + esc(n) + '</td><td>' + p.total + '</td><td>' + p.success + '</td><td>' + p.failures + '</td><td>' + (p.avg_ms === null ? '-' : p.avg_ms + ' ms') + '</td><td>' + esc(p.circuit) + '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="6" class="muted">Belum ada aktivitas provider di instance ini.</td></tr>';
+    b.innerHTML =
+      '<div class="stat-grid">' +
+        stat('Requests', t.total) +
+        stat('Success rate', t.success_rate === null || t.success_rate === undefined ? '-' : t.success_rate + '%') +
+        stat('Avg latency', t.latency && t.latency.avg_ms ? t.latency.avg_ms + ' ms' : '-') +
+        stat('p95 latency', t.latency && t.latency.p95_ms ? t.latency.p95_ms + ' ms' : '-') +
+      '</div>' +
+      '<div class="card"><h3>Status distribution</h3>' +
+        (Object.keys(t.by_status || {}).length
+          ? Object.keys(t.by_status).map(function (s) { return '<p><strong>' + esc(s) + '</strong> ' + t.by_status[s] + '</p>'; }).join('')
+          : '<p class="muted empty-state">Belum ada request.</p>') + '</div>' +
+      '<div class="card"><h3>Top endpoints</h3>' +
+        ((t.top_endpoints || []).length
+          ? '<table class="table"><thead><tr><th>Route</th><th>Requests</th><th>Avg</th></tr></thead><tbody>' +
+            t.top_endpoints.map(function (r) { return '<tr><td>' + esc(r.route) + '</td><td>' + r.n + '</td><td>' + (r.avg_ms === null ? '-' : r.avg_ms + ' ms') + '</td></tr>'; }).join('') + '</tbody></table>'
+          : '<p class="muted empty-state">Belum ada data.</p>') + '</div>' +
+      '<div class="card"><h3>Providers (instance-local)</h3>' +
+        '<table class="table"><thead><tr><th>Provider</th><th>Total</th><th>Success</th><th>Fail</th><th>Avg</th><th>Circuit</th></tr></thead><tbody>' + provRows + '</tbody></table>' +
+        '<p class="muted">State provider bersifat per-instance serverless — bukan monitoring global.</p></div>' +
+      '<div class="card"><h3>Webhooks</h3>' +
+        '<div class="stat-grid">' +
+          stat('Total deliveries', w.total) +
+          stat('Success', w.success) +
+          stat('Failed', w.failed) +
+          stat('Avg', w.avg_ms ? w.avg_ms + ' ms' : '-') +
+        '</div></div>';
+  }
+  function loadOps() {
+    L.api('GET', '/api/v1/ops/summary?range=' + opsRange).then(function (m) {
+      renderOps(m);
+    }).catch(function (err) { if (!maybeRedirect(err)) q('#opsBody').innerHTML = empty(humanMsg(err)); });
+  }
+  q('#opsBody') && document.querySelectorAll('#opsRange [data-opsrange]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#opsRange [data-opsrange]').forEach(function (b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      opsRange = btn.getAttribute('data-opsrange');
+      loadOps();
+    });
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     var logged = !!L.parseJwt(L.getToken());
     if (!logged) {
@@ -219,7 +283,7 @@
 
     var params = new URLSearchParams(window.location.search);
     var tab = params.get('tab') || 'overview';
-    if (['overview', 'keys', 'usage', 'requests'].indexOf(tab) < 0) tab = 'overview';
+    if (['overview', 'keys', 'usage', 'requests', 'ops'].indexOf(tab) < 0) tab = 'overview';
     showTab(tab);
 
     // header subnav tambah tab Dashboard (injeksi ringan tanpa ubah shell.js)
@@ -230,6 +294,11 @@
       a.href = '/dashboard'; a.setAttribute('data-nav', 'dashboard');
       a.innerHTML = L.icon('layout', 'w-3.5 h-3.5') + '<span>Dashboard</span>';
       subnavTabs.insertBefore(a, subnavTabs.firstChild);
+      var opsLink = document.createElement('a');
+      opsLink.className = 'subnav__tab';
+      opsLink.href = '/dashboard?tab=ops'; opsLink.setAttribute('data-nav', 'dashboard-ops');
+      opsLink.innerHTML = L.icon('activity', 'w-3.5 h-3.5') + '<span>Ops</span>';
+      subnavTabs.insertBefore(opsLink, subnavTabs.firstChild.nextSibling);
     }
 
     // keys events

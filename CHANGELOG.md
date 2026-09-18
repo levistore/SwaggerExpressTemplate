@@ -2,6 +2,31 @@
 
 Format: berdasarkan fase pengembangan. Tanggal mengikuti commit aktual.
 
+## Phase 7 — Observability, Operations & Production Hardening
+
+### Added
+- `lib/metrics.js`: metrics layer in-memory bounded (ring 2000) — latency
+  p50/p95, status distribution, error categories, rejections, provider &
+  webhook counters. Flag `instance_local: true` selalu disertakan.
+- `GET /api/v1/ops/summary?range=24h|7d|30d` — ops summary user-scoped:
+  traffic/success-rate/latency dari `api_usage` (sumber riwayat, tanpa
+  duplikasi), webhook deliveries aggregation, provider health + circuit.
+- Dashboard tab "Ops" (`/dashboard?tab=ops`) dengan range switcher.
+- Request log: `key_id` ditambahkan (menggabung `request_id` + `user_id`).
+- CI: `.github/workflows/ci.yml` (Node 22, syntax, OpenAPI validation,
+  integration tests via `NEON_DATABASE_URL` secret, npm audit).
+- `docs/OPERATIONS.md`, `docs/DEPLOYMENT.md`.
+
+### Changed
+- `errorHandler` menandai `error_code` untuk metrics; `requestLogger`
+  mencatat auth type (jwt/api_key/anon) + `key_id`.
+- Webhook test endpoint: rate limit ketat 10/m (outbound primitive).
+- `.env.example`: variabel admin bootstrap didokumentasikan.
+
+### Verified
+- EXPLAIN ANALYZE query terpanjang: Index Scan `api_usage_user_created_idx`,
+  tanpa seq scan — tidak ada migration index baru (yang ada sudah cukup).
+
 ## Phase 6 — API Ecosystem, Contracts & Developer Tooling
 
 ### Added
