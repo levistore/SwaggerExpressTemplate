@@ -5,6 +5,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { hashPassword, MIN_PASSWORD_LENGTH } = require('../lib/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, cleanEmail, cleanId, ValidationError } = require('../lib/validate');
+const { audit } = require('../lib/audit');
 
 // Semua endpoint di router ini butuh login DAN role admin.
 // Baca daftar email user itu data sensitif, nggak boleh publik.
@@ -98,6 +99,8 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch users' });
   }
 });
+
+router.use(require('./audit'));
 
 /**
  * @swagger
@@ -207,6 +210,7 @@ router.post('/', async (req, res) => {
     );
 
     const user = rows[0];
+    audit({ actorUserId: req.user.id, action: 'ADMIN_USER_CREATED', targetType: 'user', targetId: user.id, req, metadata: { has_password: passwordHash !== null } });
     // hasPassword bikin status akun ini eksplisit, bukan diam-diam setengah jadi.
     res.status(201).json({ ...user, hasPassword: passwordHash !== null });
   } catch (err) {
@@ -289,6 +293,7 @@ router.put('/:id', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
+    audit({ actorUserId: req.user.id, action: 'ADMIN_USER_UPDATED', targetType: 'user', targetId: id, req });
     res.json(rows[0]);
   } catch (err) {
     if (err.code === UNIQUE_VIOLATION) {
@@ -333,6 +338,7 @@ router.delete('/:id', async (req, res) => {
     if (rowCount === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
+    audit({ actorUserId: req.user.id, action: 'ADMIN_USER_DELETED', targetType: 'user', targetId: id, req });
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error('[DELETE /api/users/:id]', err.message);

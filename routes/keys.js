@@ -11,6 +11,7 @@ const { requireAuth } = require('../middleware/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, ValidationError } = require('../lib/validate');
 const apikeys = require('../lib/apikeys');
+const { audit } = require('../lib/audit');
 
 router.use(requireAuth);
 
@@ -119,6 +120,7 @@ router.post('/', async (req, res) => {
       [req.user.id, name, prefix, hash, scopes, expiresAt]
     );
 
+    audit({ actorUserId: req.user.id, action: 'API_KEY_CREATED', targetType: 'api_key', targetId: rows[0].id, req, metadata: { scopes, has_expiry: !!expiresAt } });
     return res.status(201).json({ ...rows[0], key: raw });
   } catch (err) {
     console.error('[POST /api/keys]', err.message);
@@ -150,6 +152,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const ok = await apikeys.revokeKey(id, req.user.id);
     if (!ok) return res.status(404).json({ message: 'API key not found' });
+    audit({ actorUserId: req.user.id, action: 'API_KEY_REVOKED', targetType: 'api_key', targetId: id, req });
     return res.json({ message: 'API key revoked' });
   } catch (err) {
     console.error('[DELETE /api/keys/:id]', err.message);
@@ -203,6 +206,7 @@ router.post('/:id/rotate', async (req, res) => {
     );
     await apikeys.revokeKey(id, req.user.id);
 
+    audit({ actorUserId: req.user.id, action: 'API_KEY_ROTATED', targetType: 'api_key', targetId: inserted.rows[0].id, req, metadata: { old_key_id: id } });
     return res.status(201).json({ ...inserted.rows[0], key: raw });
   } catch (err) {
     console.error('[POST /api/keys/:id/rotate]', err.message);

@@ -5,6 +5,7 @@ const { requireAuth, requireScope } = require('../middleware/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, cleanEmail, cleanPassword, ValidationError } = require('../lib/validate');
 const sessions = require('../lib/sessions');
+const { audit } = require('../lib/audit');
 const { clientIp } = require('../lib/ratelimit');
 const {
   hashPassword,
@@ -136,6 +137,8 @@ router.post('/register', async (req, res) => {
       ip: clientIp(req),
     }).catch(() => null);
 
+    audit({ actorUserId: user.id, action: 'REGISTER', targetType: 'user', targetId: user.id, req });
+
     return res.status(201).json({
       token,
       tokenType: 'Bearer',
@@ -200,6 +203,7 @@ router.post('/login', async (req, res) => {
     const ok = await verifyPassword(String(password), storedHash);
 
     if (!user || !user.password_hash || !ok) {
+      audit({ actorUserId: user ? user.id : null, action: 'LOGIN_FAILED', targetType: 'user', targetId: user ? user.id : null, req });
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -211,6 +215,8 @@ router.post('/login', async (req, res) => {
       userAgent: req.headers['user-agent'],
       ip: clientIp(req),
     }).catch(() => null); // kegagalan sesi jangan bikin login gagal total
+
+    audit({ actorUserId: user.id, action: 'LOGIN_SUCCESS', targetType: 'user', targetId: user.id, req });
 
     return res.json({
       token,
@@ -341,7 +347,8 @@ router.put('/me', requireAuth, requireScope('profile:write'), async (req, res) =
     // Ganti password → semua sesi LAIN dicabut (sesi saat ini tetap dipakai,
     // biar user nggak ke-logout sendiri). Perilaku didokumentasikan di README.
     if (password !== undefined) {
-      await sessions.revokeAllSessions(req.user.id, { exceptSessionId: req.sessionId }).catch(() => {});
+      const revoked = await sessions.revokeAllSessions(req.user.id, { exceptSessionId: req.sessionId }).catch(() => 0);
+      audit({ actorUserId: req.user.id, action: 'PASSWORD_CHANGED', targetType: 'user', targetId: req.user.id, req, metadata: { other_sessions_revoked: revoked } });
     }
 
     return res.json(upd.rows[0]);
@@ -388,6 +395,7 @@ router.post('/refresh', async (req, res, next) => {
       return res.status(401).json({ message: e.message });
     }
     if (e.code === 'REUSE') {
+      audit({ action: 'REFRESH_TOKEN_REUSE', req, metadata: { family_revoked: true } });
       return res.status(401).json({ message: e.message, code: 'REFRESH_REUSE_DETECTED' });
     }
     return next(e);
@@ -407,10 +415,14 @@ router.post('/logout', async (req, res) => {
   // Revoke by hash — tanpa perlu auth, karena pemegang token adalah pemiliknya.
   const h = sessions.hashToken(raw);
   try {
-    await db.query(
+    const { rowCount } = await db.query(
       `update sessions set revoked_at = now() where token_hash = $1 and revoked_at is null`,
       [h]
     );
+    if (rowCount > 0) {
+      const owner = await db.query(`select user_id from sessions where token_hash = $1`, [h]);
+      audit({ actorUserId: owner.rows[0] ? owner.rows[0].user_id : null, action: 'LOGOUT', targetType: 'session', req });
+    }
     return res.json({ message: 'Logged out' });
   } catch (err) {
     console.error('[POST /api/auth/logout]', err.message);
@@ -442,6 +454,7 @@ router.delete('/sessions/:id', requireAuth, async (req, res) => {
   try {
     const ok = await sessions.revokeSession(id, req.user.id);
     if (!ok) return res.status(404).json({ message: 'Session not found' });
+    audit({ actorUserId: req.user.id, action: 'SESSION_REVOKED', targetType: 'session', targetId: id, req });
     return res.json({ message: 'Session revoked' });
   } catch (err) {
     console.error('[DELETE /api/auth/sessions/:id]', err.message);
@@ -455,6 +468,7 @@ router.delete('/sessions/:id', requireAuth, async (req, res) => {
 router.post('/logout-all', requireAuth, async (req, res) => {
   try {
     const n = await sessions.revokeAllSessions(req.user.id);
+    audit({ actorUserId: req.user.id, action: 'LOGOUT_ALL', targetType: 'user', targetId: req.user.id, req, metadata: { revoked: n } });
     return res.json({ message: 'All sessions revoked', revoked: n });
   } catch (err) {
     console.error('[POST /api/auth/logout-all]', err.message);
