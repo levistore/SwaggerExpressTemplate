@@ -121,8 +121,14 @@ API ini sudah menerapkan hardening berikut (tanpa mengubah perilaku endpoint yan
 
 > Catatan jujur: limiter ini in-memory **per instance** function. Di Vercel
 > serverless tidak ada memori bersama antar-instance, jadi ini penghalang
-> efektif tingkat pertama, bukan quota global presisi. Quota global butuh
-> store terdistribusi (mis. Upstash Redis) — rencana fase berikutnya.
+> efektif tingkat pertama, bukan quota global presisi. Store terdistribusi
+> (Upstash Redis) **dibatalkan sebagai keputusan proyek (Phase 2A)** —
+> limitation per-instance ini diterima sebagai known risk produksi, dan
+> behavior limiter yang berjalan tidak diubah.
+>
+> Known risk lain: access JWT tetap valid sampai expiry setelah logout
+> (tidak ada blacklist; mitigasi: refresh token 7 hari bisa di-revoke
+> server-side, access token pendek umurninya).
 
 ### SSRF protection (`lib/ssrf.js`)
 
