@@ -134,7 +134,6 @@
           '<a href="/#architecture">Architecture</a>' +
           '<a href="/explore">Playground</a>' +
           '<a href="/docs">Documentation</a>' +
-          '<a href="/#pricing">Pricing</a>' +
         '</nav>' +
         '<div class="header-actions">' +
           (logged
@@ -152,7 +151,7 @@
       '</div>' +
       '<div class="mobile-menu" data-el="mobileMenu">' +
         '<a href="/#features">Features</a><a href="/#architecture">Architecture</a>' +
-        '<a href="/explore">Playground</a><a href="/docs">Documentation</a><a href="/#pricing">Pricing</a>' +
+        '<a href="/explore">Playground</a><a href="/docs">Documentation</a>' +
         (logged
           ? '<a href="/profile">Profile</a>' + (isAdmin ? '<a href="/admin">Admin Panel</a>' : '') + '<a href="#" data-action="logout">Sign out</a>'
           : '<a href="/profile">Sign in</a><a href="/profile?mode=register">Get Started</a>') +
@@ -203,7 +202,7 @@
           '<div class="site-footer__col"><h4>Technology</h4><ul>' +
             '<li><a href="/#features">Features</a></li>' +
             '<li><a href="/#architecture">Architecture</a></li>' +
-            '<li><a href="/#pricing">Pricing</a></li>' +
+            '<li><a href="/profile#pricing">Pricing</a></li>' +
           '</ul></div>' +
         '</div>' +
         '<div class="site-footer__bottom">' +
@@ -282,12 +281,32 @@
   }
 
   // ------------------------------------------------------------------
+  // Bottom nav (mobile) — floating pill: Home, Docs, API, Profil
+  // ------------------------------------------------------------------
+  function buildBottomNav() {
+    var el = document.getElementById('bottomNav');
+    if (!el) return;
+    var active = el.getAttribute('data-active') || '';
+    var items = [
+      { id: 'home', href: '/', ic: 'layout', label: 'Home' },
+      { id: 'docs', href: '/docs', ic: 'book', label: 'Docs' },
+      { id: 'api', href: '/explore', ic: 'terminal', label: 'API' },
+      { id: 'profile', href: '/profile', ic: 'user', label: 'Profil' }
+    ];
+    el.innerHTML = items.map(function (it) {
+      return '<a class="bottom-nav__item' + (active === it.id ? ' is-active' : '') + '" href="' + it.href + '" aria-label="' + it.label + '">' +
+        icon(it.ic) + '<span>' + it.label + '</span></a>';
+    }).join('');
+  }
+
+  // ------------------------------------------------------------------
   // boot
   // ------------------------------------------------------------------
   document.addEventListener('DOMContentLoaded', function () {
     buildHeader();
     buildFooter();
     buildSubnav();
+    buildBottomNav();
     initReveal();
   });
 
