@@ -12,7 +12,7 @@ const {
   TOKEN_TTL,
 } = require('../lib/auth');
 
-const COLUMNS = 'id, name, email';
+const COLUMNS = 'id, name, email, role';
 
 // Kode error Postgres untuk unique violation.
 const UNIQUE_VIOLATION = '23505';
@@ -182,7 +182,7 @@ router.post('/login', async (req, res) => {
       token,
       tokenType: 'Bearer',
       expiresIn: TOKEN_TTL,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
     });
   } catch (err) {
     console.error('[POST /api/auth/login]', err.message);

@@ -3,7 +3,7 @@ const { verifyToken } = require('../lib/auth');
 /**
  * Middleware: butuh header `Authorization: Bearer <token>`.
  *
- * Kalau valid, req.user diisi { id, email } dan request diteruskan.
+ * Kalau valid, req.user diisi { id, email, role } dan request diteruskan.
  * Kalau tidak, langsung 401 dan handler-nya nggak pernah jalan.
  */
 async function requireAuth(req, res, next) {
@@ -26,8 +26,21 @@ async function requireAuth(req, res, next) {
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 
-  req.user = { id, email: payload.email };
+  req.user = { id, email: payload.email, role: payload.role === 'admin' ? 'admin' : 'user' };
   return next();
 }
 
-module.exports = { requireAuth };
+/**
+ * Middleware lanjutan setelah requireAuth: cuma lewat kalau req.user.role
+ * === 'admin'. Dipakai buat endpoint manajemen user.
+ */
+function requireAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Admin only. Endpoint ini cuma bisa diakses akun admin.',
+    });
+  }
+  return next();
+}
+
+module.exports = { requireAuth, requireAdmin };

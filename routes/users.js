@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { hashPassword, MIN_PASSWORD_LENGTH } = require('../lib/auth');
 
-const COLUMNS = 'id, name, email';
+// Semua endpoint di router ini butuh login DAN role admin.
+// Baca daftar email user itu data sensitif, nggak boleh publik.
+router.use(requireAuth, requireAdmin);
+
+const COLUMNS = 'id, name, email, role';
 
 // Kode error Postgres untuk unique violation (email sudah dipakai).
 const UNIQUE_VIOLATION = '23505';
@@ -176,7 +180,7 @@ router.get('/:id', async (req, res) => {
  *       409:
  *         description: Email sudah dipakai user lain
  */
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', async (req, res) => {
   const { name, email, password } = req.body || {};
 
   // Di-trim dulu supaya sama persis dengan register. Login mencocokkan
@@ -262,7 +266,7 @@ router.post('/', requireAuth, async (req, res) => {
  *       409:
  *         description: Email sudah dipakai user lain
  */
-router.put('/:id', requireAuth, async (req, res) => {
+router.put('/:id', async (req, res) => {
   const { name, email } = req.body;
 
   // Urutan cek dipertahankan seperti aslinya: body dulu (400), baru id (404).
@@ -318,7 +322,7 @@ router.put('/:id', requireAuth, async (req, res) => {
  *       404:
  *         description: The user was not found
  */
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) {
     return res.status(404).json({ message: 'User not found' });

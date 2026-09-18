@@ -40,136 +40,6 @@
 
   var CATALOG = [
     {
-      id: 'auth',
-      name: 'Autentikasi',
-      icon: 'key',
-      desc: 'Daftar, masuk, dan cek identitas token.',
-      endpoints: [
-        {
-          method: 'POST', path: '/api/auth/register', name: 'Daftar akun',
-          desc: 'Bikin akun baru. Responsnya <b>langsung berisi token</b>, jadi nggak perlu login terpisah sesudahnya. Password di-hash scrypt sebelum masuk database.',
-          writes: true,
-          fields: [
-            { name: 'name', in: 'body', label: 'name', value: 'Levi', hint: 'Nama tampilan. Wajib diisi.' },
-            { name: 'email', in: 'body', label: 'email', value: '@auto', hint: 'Harus format email yang valid. Tiap kali dipilih, alamatnya diacak supaya nggak bentrok.' },
-            { name: 'password', in: 'body', label: 'password', value: 'rahasia12345', type: 'password', hint: 'Minimal <code>8</code> karakter.' }
-          ],
-          codes: [
-            ['201', 'token + data user'],
-            ['400', 'Name is required'],
-            ['400', 'Valid email is required'],
-            ['400', 'Password must be at least 8 characters'],
-            ['409', 'Email is already registered']
-          ]
-        },
-        {
-          method: 'POST', path: '/api/auth/login', name: 'Masuk',
-          desc: 'Tukar email dan password jadi token baru. Bentuk responsnya sama persis dengan register.',
-          fields: [
-            { name: 'email', in: 'body', label: 'email', value: '', hint: 'Email yang sudah terdaftar.' },
-            { name: 'password', in: 'body', label: 'password', value: '', type: 'password', hint: 'Password akun itu.' }
-          ],
-          codes: [
-            ['200', 'token + data user'],
-            ['400', 'Email and password are required'],
-            ['401', 'Invalid email or password']
-          ]
-        },
-        {
-          method: 'GET', path: '/api/auth/me', name: 'Profil dari token',
-          desc: 'Profil milik token yang dikirim. Endpoint paling cepat buat ngecek token lu masih hidup atau nggak.',
-          auth: true,
-          codes: [
-            ['200', 'data user'],
-            ['401', TOKEN_MSG],
-            ['401', 'Invalid or expired token'],
-            ['404', 'User not found — akun di token sudah dihapus']
-          ]
-        }
-      ]
-    },
-    {
-      id: 'read',
-      name: 'User — Baca',
-      icon: 'eye',
-      desc: 'Terbuka tanpa token. Perhatikan: email tiap user ikut terkirim.',
-      endpoints: [
-        {
-          method: 'GET', path: '/api/users', name: 'Daftar semua user',
-          desc: 'Semua user dalam satu array. <b>Tanpa token</b> — dan <code>email</code> ikut terkirim, bukan cuma nama.',
-          codes: [['200', 'array of user']]
-        },
-        {
-          method: 'GET', path: '/api/users/:id', name: 'Satu user',
-          desc: 'Satu user berdasarkan id. Id yang bukan angka dibalas sama seperti id yang nggak ada — <code>404</code>, bukan <code>400</code>.',
-          fields: [
-            { name: 'id', in: 'path', label: 'id (di path)', value: '1', hint: 'Id user. Coba <code>1</code>, atau id punya lu sendiri.' }
-          ],
-          codes: [
-            ['200', 'data user'],
-            ['404', 'User not found']
-          ]
-        }
-      ]
-    },
-    {
-      id: 'write',
-      name: 'User — Tulis',
-      icon: 'pen',
-      desc: 'Butuh bearer token. Perubahannya nyata di database production.',
-      endpoints: [
-        {
-          method: 'POST', path: '/api/users', name: 'Bikin user langsung',
-          desc: 'Bikin user tanpa lewat alur register. <code>password</code> <b>opsional</b>: boleh nggak dikirim sama sekali, tapi kalau dikirim wajib minimal <code>8</code> karakter. Responsnya nambahin <code>hasPassword</code>.',
-          auth: true, writes: true,
-          fields: [
-            { name: 'name', in: 'body', label: 'name', value: 'Levi', hint: 'Wajib diisi.' },
-            { name: 'email', in: 'body', label: 'email', value: '@auto', hint: 'Wajib, harus format email valid.' },
-            { name: 'password', in: 'body', label: 'password', value: '', type: 'password', optional: true, hint: 'Kosongkan kalau nggak mau akun ini bisa login. Minimal <code>8</code> karakter kalau diisi.' }
-          ],
-          codes: [
-            ['201', 'user + hasPassword'],
-            ['400', 'Name and email are required'],
-            ['400', 'Password must be at least 8 characters'],
-            ['401', TOKEN_MSG],
-            ['409', 'Email is already registered']
-          ]
-        },
-        {
-          method: 'PUT', path: '/api/users/:id', name: 'Ganti nama dan email',
-          desc: 'Ganti nama dan email. <b>Bukan update sebagian</b> — <code>name</code> dan <code>email</code> dua-duanya wajib dikirim; kalau salah satu hilang dibalas <code>400</code>.',
-          auth: true, writes: true,
-          fields: [
-            { name: 'id', in: 'path', label: 'id (di path)', value: '1', hint: 'Id user yang mau diubah.' },
-            { name: 'name', in: 'body', label: 'name', value: 'Levi Diperbarui', hint: 'Wajib.' },
-            { name: 'email', in: 'body', label: 'email', value: '@auto', hint: 'Wajib, dan harus unik.' }
-          ],
-          codes: [
-            ['200', 'user yang sudah diperbarui'],
-            ['400', 'Name and email are required'],
-            ['401', TOKEN_MSG],
-            ['401', 'Invalid or expired token'],
-            ['404', 'User not found'],
-            ['409', 'Email is already registered']
-          ]
-        },
-        {
-          method: 'DELETE', path: '/api/users/:id', name: 'Hapus user',
-          desc: 'Hapus user secara permanen. Nggak ada soft delete, nggak ada undo.',
-          auth: true, writes: true,
-          fields: [
-            { name: 'id', in: 'path', label: 'id (di path)', value: '1', hint: 'Id user yang mau dihapus.' }
-          ],
-          codes: [
-            ['200', 'User deleted successfully'],
-            ['401', TOKEN_MSG],
-            ['401', 'Invalid or expired token'],
-            ['404', 'User not found']
-          ]
-        }
-      ]
-    },
-    {
       id: 'download',
       name: 'Downloader',
       icon: 'dl',
@@ -191,7 +61,7 @@
         },
         {
           method: 'GET', path: '/api/download/youtube', name: 'YouTube',
-          desc: 'Semua format video (MP4/WebM, sampai 4K) + audio (OPUS/M4A) untuk video & Shorts publik.',
+          desc: 'Video & audio (MP4/WebM/OPUS, sampai 4K) untuk video YouTube publik. Shorts kadang ditolak sumbernya — tergantung beban; coba lagi nanti kalau kena.',
           auth: true,
           fields: [
             { name: 'url', in: 'query', label: 'url', value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'URL youtube.com/watch?v=... atau youtube.com/shorts/...' }

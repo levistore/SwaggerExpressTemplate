@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Lcode Api</title>
+<meta name="description" content="Panel admin Lcode Api: kelola akun user. Khusus admin.">
+<meta name="theme-color" content="#050505">
+<meta name="robots" content="noindex, nofollow">
+<meta property="og:title" content="Admin — Lcode Api">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Cpath d='M9 22V10h3.4v9.2H23V22H9Z' fill='%23CCFF00'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script>document.documentElement.className += ' js';</script>
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true">
+  <span class="ambient__blob ambient__blob--a"></span>
+  <span class="ambient__blob ambient__blob--b"></span>
+  <span class="ambient__grid"></span>
+</div>
+
+<a class="skip" href="#main">Lompat ke konten</a>
+
+<header class="nav" id="nav">
+  <div class="wrap nav__inner">
+    <a class="brand" href="/" aria-label="Lcode Api, ke beranda">
+      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
+      <span class="brand__text">Lcode <span class="brand__thin">Api</span></span>
+    </a>
+
+    <nav class="nav__links" aria-label="Navigasi utama">
+      <a href="/">Home</a>
+      <a href="/docs">API Docs</a>
+      <a href="/explore">API Explore</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/profile">Profile</a>
+      <a href="/admin" aria-current="page">Admin</a>
+    </nav>
+
+    <div class="nav__actions">
+      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navMobile" aria-label="Buka menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="nav__mobile" id="navMobile" hidden>
+    <a href="/">Home</a>
+    <a href="/docs">API Docs</a>
+    <a href="/explore">API Explore</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/profile">Profile</a>
+    <a href="/admin" aria-current="page">Admin</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="page-head">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal><span class="eyebrow__dot" aria-hidden="true"></span>Khusus admin</p>
+      <h1 class="display" data-reveal data-delay="1">Admin Panel</h1>
+      <p class="lede" data-reveal data-delay="2">
+        Kelola akun user: lihat daftar, bikin akun baru, ubah data, hapus.
+        Semua lewat endpoint <code>/api/users</code> yang cuma dibuka untuk role admin.
+      </p>
+      <div class="meta-row" data-reveal data-delay="3">
+        <span class="meta">Akses <b>admin only</b></span>
+        <span class="meta">Perubahan <b>nyata</b> di database</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="wrap">
+
+      <!-- ============ BUKAN ADMIN ============ -->
+      <div id="denyView" hidden>
+        <div class="panel" data-reveal>
+          <div class="panel__head">
+            <h2 class="panel__title">Akses ditolak</h2>
+            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>
+          </div>
+          <div class="panel__body">
+            <p class="note note--info" id="denyMsg">Halaman ini cuma untuk akun dengan role admin. Masuk dulu pakai akun admin di halaman Profile.</p>
+            <div class="form-actions">
+              <a class="btn btn--primary" href="/profile"><span>Masuk di halaman Profile</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ADMIN ============ -->
+      <div id="adminView" hidden>
+        <div class="grid-2" style="align-items:start">
+
+          <!-- daftar user -->
+          <div class="panel" data-reveal>
+            <div class="panel__head">
+              <h2 class="panel__title">Daftar user <span class="chip chip--muted" id="userCount">—</span></h2>
+              <button class="btn btn--ghost btn--sm" id="btnReload" type="button">
+                <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2.5v3h-3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Muat ulang</span>
+              </button>
+            </div>
+            <div class="panel__body">
+              <p class="note note--info" id="listErr" hidden></p>
+              <div id="userTable" class="stack stack--sm"></div>
+            </div>
+          </div>
+
+          <!-- form bikin user -->
+          <div class="panel" data-reveal data-delay="1">
+            <div class="panel__head">
+              <h2 class="panel__title">Bikin akun</h2>
+              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <div class="panel__body">
+              <form id="createForm" class="stack stack--sm" novalidate>
+                <div class="field">
+                  <label for="cName">Nama</label>
+                  <input id="cName" type="text" placeholder="Nama user" spellcheck="false">
+                </div>
+                <div class="field">
+                  <label for="cEmail">Email</label>
+                  <input id="cEmail" type="email" placeholder="user@contoh.com" spellcheck="false">
+                </div>
+                <div class="field">
+                  <label for="cPassword">Password <span style="opacity:.55">(opsional)</span></label>
+                  <input id="cPassword" type="password" autocomplete="new-password" placeholder="kosongkan = akun tanpa password">
+                  <p class="field__hint">Kalau diisi, minimal 8 karakter. Akun tanpa password nggak bisa login.</p>
+                </div>
+                <div class="field">
+                  <label for="cRole">Role</label>
+                  <select id="cRole" class="field__select">
+                    <option value="user" selected>user</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </div>
+                <p class="field__hint" id="cErr" hidden></p>
+                <div class="form-actions">
+                  <button class="btn btn--primary" id="cSubmit" type="submit"><span>Bikin akun</span></button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- editor inline (muncul saat klik Edit di baris) -->
+        <div class="panel" id="editPanel" hidden style="margin-top:24px" data-reveal>
+          <div class="panel__head">
+            <h2 class="panel__title">Edit user <span class="chip chip--muted" id="eId">—</span></h2>
+            <button class="btn btn--ghost btn--sm" id="eCancel" type="button"><span>Tutup</span></button>
+          </div>
+          <div class="panel__body">
+            <form id="editForm" class="stack stack--sm" novalidate>
+              <div class="grid-2" style="gap:16px">
+                <div class="field">
+                  <label for="eName">Nama</label>
+                  <input id="eName" type="text" spellcheck="false">
+                </div>
+                <div class="field">
+                  <label for="eEmail">Email</label>
+                  <input id="eEmail" type="email" spellcheck="false">
+                </div>
+              </div>
+              <div class="grid-2" style="gap:16px; align-items:end">
+                <div class="field">
+                  <label for="eRole">Role</label>
+                  <select id="eRole" class="field__select">
+                    <option value="user">user</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="ePassword">Password baru <span style="opacity:.55">(opsional)</span></label>
+                  <input id="ePassword" type="password" autocomplete="new-password" placeholder="biarkan kosong = nggak diubah">
+                </div>
+              </div>
+              <p class="field__hint" id="eErr" hidden></p>
+              <div class="form-actions">
+                <button class="btn btn--primary" id="eSubmit" type="submit"><span>Simpan perubahan</span></button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <p>© <span id="year">2026</span> Lcode Api</p>
+    <nav class="footer__links" aria-label="Tautan kaki">
+      <a href="/docs">Docs</a>
+      <a href="/explore">Explore</a>
+      <a href="/api-docs">Swagger</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="/shell.js"></script>
+<script src="/admin.js"></script>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>
