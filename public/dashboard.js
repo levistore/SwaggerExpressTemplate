@@ -107,15 +107,21 @@
     }).catch(function (err) { if (!maybeRedirect(err)) L.toast(humanMsg(err), 'error'); });
   }
 
+  function setModalOpen(open) {
+    document.body.classList.toggle('modal-open', !!open);
+  }
+
   function openKeyModal(raw) {
     q('#kmKey').textContent = raw;
     q('#keyModal').hidden = false;
+    setModalOpen(true);
     q('#kmCopy').focus();
   }
   function closeKeyModal() {
     // Raw key hilang dari DOM — tidak bisa diminta ulang.
     q('#kmKey').textContent = '';
     q('#keyModal').hidden = true;
+    setModalOpen(false);
     loadKeys();
   }
 
@@ -128,6 +134,7 @@
     if (daysRaw) body.expiresInDays = parseInt(daysRaw, 10);
     L.api('POST', '/api/keys', body).then(function (k) {
       q('#newKeyModal').hidden = true;
+      setModalOpen(false);
       q('#nkForm').reset();
       openKeyModal(k.key);
     }).catch(function (err) { L.toast(humanMsg(err), 'error'); });
@@ -302,9 +309,9 @@
     }
 
     // keys events
-    q('#btnNewKey').addEventListener('click', function () { q('#newKeyModal').hidden = false; q('#nkName').focus(); });
+    q('#btnNewKey').addEventListener('click', function () { q('#newKeyModal').hidden = false; setModalOpen(true); q('#nkName').focus(); });
     q('#nkForm').addEventListener('submit', createKey);
-    q('#nkCancel').addEventListener('click', function () { q('#newKeyModal').hidden = true; });
+    q('#nkCancel').addEventListener('click', function () { q('#newKeyModal').hidden = true; setModalOpen(false); });
     q('#kmClose').addEventListener('click', closeKeyModal);
     q('#kmCopy').addEventListener('click', function () {
       var txt = q('#kmKey').textContent;

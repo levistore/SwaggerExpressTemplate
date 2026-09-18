@@ -117,11 +117,13 @@
     q('#mPwLabel').textContent = editingId === null ? 'Password' : 'New Password';
     q('#mPwOpt').textContent = editingId === null ? '*wajib' : '(kosong = tetap)';
     q('#modalBack').hidden = false;
+    document.body.classList.add('modal-open');
     q('#mName').focus();
   }
 
   function closeModal() {
     q('#modalBack').hidden = true;
+    document.body.classList.remove('modal-open');
     editingId = null;
   }
 

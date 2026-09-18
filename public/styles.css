@@ -742,7 +742,8 @@ img { max-width: 100%; }
 }
 .modal-backdrop[hidden] { display: none; }
 .modal {
-  width: 100%; max-width: 26rem; background: #fff;
+  width: 100%; max-width: 26rem; max-height: calc(100dvh - 2rem);
+  background: #fff; overflow-y: auto;
   border-radius: var(--radius); border: 1px solid var(--line);
   box-shadow: 0 16px 48px rgba(12,12,14,0.2); padding: 1.5rem;
 }
@@ -812,9 +813,14 @@ img { max-width: 100%; }
 @media (min-width: 768px) { .bottom-nav { display: none; } }
 /* ruang buat bottom nav biar konten bawah nggak ketutup */
 @media (max-width: 767.98px) {
-  body { padding-bottom: 4.5rem; }
+  body { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
   .toast { bottom: 5.25rem; }
+  .subnav__tabs { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .subnav__tabs::-webkit-scrollbar { display: none; }
 }
+
+/* modal terbuka: lock scroll body, balikin pas ditutup */
+body.modal-open { overflow: hidden; }
 
 /* ============================================================
    Mobile fixes — cegah horizontal overflow di layar sempit
@@ -909,8 +915,9 @@ html, body { max-width: 100%; overflow-x: clip; }
 .tbl { width: 100%; border-collapse: collapse; font-size: .85rem; }
 .tbl th { text-align: left; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); padding: .5rem .6rem; border-bottom: 1px solid var(--line); }
 .tbl td { padding: .5rem .6rem; border-bottom: 1px solid var(--line-soft); }
-.modal { position: fixed; inset: 0; background: rgba(12,12,14,.55); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 1rem; }
-.modal__box { max-width: 460px; width: 100%; }
+.modal-layer { position: fixed; inset: 0; background: rgba(12,12,14,.55); display: flex; align-items: center; justify-content: center; z-index: 90; padding: 1rem; }
+.modal-layer[hidden] { display: none; }
+.modal__box { max-width: min(460px, 100%); width: 100%; max-height: calc(100dvh - 2rem); overflow-y: auto; }
 .key-reveal { display: block; margin: .9rem 0; padding: .8rem; background: var(--bg-soft); border: 1px dashed var(--line); border-radius: 8px; font-size: .78rem; word-break: break-all; user-select: all; }
 .scopes { border: 1px solid var(--line); border-radius: 8px; padding: .6rem .8rem; margin: .8rem 0; display: flex; flex-direction: column; gap: .35rem; }
 .scopes legend { font-size: .78rem; color: var(--muted); padding: 0 .3rem; }
