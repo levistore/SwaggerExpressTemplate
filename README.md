@@ -173,3 +173,58 @@ npm test        # jalankan server lokal dulu (lihat README bagian dev)
 `tests/security.test.js` menguji: auth (JWT invalid/expired/malformed, RBAC),
 validasi input, SSRF (localhost/private/metadata/penyamaran IP), rate limit
 429, format error standar, request ID, security headers.
+
+## Phase 2 — Sessions, API Keys, Audit Trail
+
+### Authentication: JWT + Refresh Token + Sessions
+
+- **Login/register** tetap balikin `token` (JWT 7d, backward-compatible) + **baru**:
+  `refreshToken` (opaque, 30 hari) & `sessionId`.
+- **Refresh token** disimpan sebagai SHA-256 hash (`sessions.token_hash`) — raw token
+  tidak pernah ada di database. Tiap `POST /api/auth/refresh` memutar token (rotation).
+- **Reuse detection**: refresh token yang sudah revoked dipakai lagi → seluruh family
+  sesi di-revoke (indikasi token dicuri).
+- **Logout**: `POST /api/auth/logout {refreshToken}` revoke sesi di server.
+  Access JWT tetap valid sampai expired (tidak ada access-token blacklist) — karena
+  itu TTL-nya pendek dan logout selalu dipasangkan dengan pencabutan refresh token.
+- **Sesi**: `GET /api/auth/sessions` (metadata tanpa token), `DELETE /api/auth/sessions/:id`
+  (anti-IDOR), `POST /api/auth/logout-all`.
+- **Ganti password** (`PUT /api/auth/me` + password baru) mencabut semua sesi LAIN;
+  sesi saat ini dipertahankan (identifikasi via header opsional `X-Session-ID`).
+
+### API Keys
+
+- Format: `lcode_live_<43 char base64url>` — dibedakan dari JWT otomatis.
+- Disimpan sebagai hash + prefix 14 char; raw key **hanya dikirim sekali** saat create/rotate.
+- Endpoint: `POST /api/keys` (name, scopes, expiresInDays opsional ≤3650),
+  `GET /api/keys` (metadata saja), `DELETE /api/keys/:id`, `POST /api/keys/:id/rotate`.
+- Maksimal 10 key aktif per user.
+- **Scopes** (tanpa wildcard): `downloads:read`, `profile:read`, `profile:write`.
+  Endpoint admin **tidak bisa** diakses API key apa pun (`requireAdmin` menolak `api_key`).
+- Autentikasi: `Authorization: Bearer lcode_live_...` — backend mengenali prefix
+  dan mengalihkan ke jalur API key (lookup by hash, index).
+- Rate limit identity: **IP + key** — key bocor tetap terbatas walau dipakai dari
+  banyak IP, dan banyak developer di satu NAT tetap dapat kuota per-key.
+
+### Audit Trail
+
+Event yang dicatat: REGISTER, LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, LOGOUT_ALL,
+PASSWORD_CHANGED, REFRESH_TOKEN_REUSE, SESSION_REVOKED, API_KEY_CREATED,
+API_KEY_REVOKED, API_KEY_ROTATED, ADMIN_USER_CREATED/UPDATED/DELETED.
+Metadata disanitasi (password/token/key dibuang otomatis); kegagalan audit tidak
+membuat request gagal. Admin: `GET /api/users/audit-logs?limit=&offset=&action=&actor=&from=&to=`.
+
+### Migrations
+
+```
+db/004_sessions.sql  — tabel sessions (refresh token hash, family rotation)
+db/005_api_keys.sql  — tabel api_keys + kolom users.email_verified (persiapan 2C)
+db/006_audit.sql     — tabel audit_logs (append-only)
+npm run db:migrate   # idempotent, aman diulang
+```
+
+### Phase 2C (email verification & password reset): BELUM DIIMPLEMENT
+
+Butuh kredensial email provider (Resend/SMTP) yang belum tersedia. Struktur DB
+(`users.email_verified`) sudah disiapkan. Inilah satu-satunya bagian Phase 2 yang
+belum selesai — dilaporkan jujur, bukan diam-diam dilewati.

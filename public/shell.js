@@ -9,6 +9,8 @@
   // State auth (satu sumber: sessionStorage 'lcode.token')
   // ------------------------------------------------------------------
   var TOKEN_KEY = 'lcode.token';
+  var REFRESH_KEY = 'lcode.refresh';
+  var SESSION_KEY = 'lcode.session';
 
   function getToken() {
     try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; }
@@ -18,6 +20,24 @@
       if (t) sessionStorage.setItem(TOKEN_KEY, t);
       else sessionStorage.removeItem(TOKEN_KEY);
     } catch (e) { /* storage bisa diblokir — abaikan */ }
+  }
+  function getRefresh() {
+    try { return sessionStorage.getItem(REFRESH_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setRefresh(t) {
+    try {
+      if (t) sessionStorage.setItem(REFRESH_KEY, t);
+      else sessionStorage.removeItem(REFRESH_KEY);
+    } catch (e) { /* abaikan */ }
+  }
+  function getSessionId() {
+    try { return sessionStorage.getItem(SESSION_KEY) || ''; } catch (e) { return ''; }
+  }
+  function setSessionId(id) {
+    try {
+      if (id) sessionStorage.setItem(SESSION_KEY, String(id));
+      else sessionStorage.removeItem(SESSION_KEY);
+    } catch (e) { /* abaikan */ }
   }
 
   // decode payload JWT tanpa verifikasi (cuma buat UI; server tetap cek asli)
@@ -41,6 +61,8 @@
     if (body !== undefined) headers['content-type'] = 'application/json';
     var tok = getToken();
     if (tok) headers.authorization = 'Bearer ' + tok;
+    var sid = getSessionId();
+    if (sid) headers['x-session-id'] = sid;
     return fetch(path, {
       method: method,
       headers: headers,
@@ -166,7 +188,16 @@
       }
       if (t.getAttribute('data-action') === 'logout') {
         ev.preventDefault();
-        setToken('');
+        // server-side logout dulu (revoke refresh token), lalu bersihkan lokal
+        var rf = getRefresh();
+        if (rf) {
+          fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ refreshToken: rf })
+          }).catch(function () {});
+        }
+        setToken(''); setRefresh(''); setSessionId('');
         window.location.href = '/';
       }
     });
@@ -314,6 +345,9 @@
   window.Lcode = {
     getToken: getToken,
     setToken: setToken,
+    setRefresh: setRefresh,
+    setSessionId: setSessionId,
+    getSessionId: getSessionId,
     parseJwt: parseJwt,
     api: api,
     toast: toast,

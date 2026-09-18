@@ -65,6 +65,7 @@
       password: q('#liPassword').value
     }).then(function (res) {
       L.setToken(res.token);
+      if (res.refreshToken) { L.setRefresh(res.refreshToken); L.setSessionId(res.sessionId); }
       L.toast('Login berhasil — selamat datang, ' + (res.user && res.user.name || '') + '!', 'ok');
       return loadMe();
     }).catch(function (err) {
@@ -89,6 +90,7 @@
       password: pw
     }).then(function (res) {
       L.setToken(res.token);
+      if (res.refreshToken) { L.setRefresh(res.refreshToken); L.setSessionId(res.sessionId); }
       L.toast('Akun dibuat — langsung masuk!', 'ok');
       return loadMe();
     }).catch(function (err) {
