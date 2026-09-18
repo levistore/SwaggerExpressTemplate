@@ -139,14 +139,43 @@ app.use('/api/v1/keys', envelopedRouter(keysRoutes));
 app.use('/api/v1/dashboard', envelopedRouter(dashboardRoutes));
 
 // Health check — status nyata (DB di-ping beneran, nggak hardcode ok)
+// Health check (Phase 5): app up / DB down dibedakan; cepat; TANPA detail
+// kredensial/host/stack. Nggak menyentuh downloader provider eksternal.
+// Metadata lifecycle aman: versi API, versi yang didukung, docs.
+const API_LIFECYCLE = {
+  current: 'v1',
+  supported: ['v1'],
+  deprecated: [], // legacy /api/* TIDAK dideprekasi — compatibility layer tetap
+  docs: '/api/docs.json',
+  legacy: { status: 'supported', note: 'path /api/* tanpa versi tetap berjalan' },
+};
+
 app.get('/api/health', async (req, res) => {
   try {
     const db = require('./lib/db');
     await db.query('select 1');
-    return res.json({ status: 'ok', database: 'connected', uptime: process.uptime() });
+    return res.json({
+      status: 'ok',
+      database: 'connected',
+      uptime: process.uptime(),
+      api: API_LIFECYCLE,
+      time: new Date().toISOString(),
+    });
   } catch (err) {
-    return res.status(503).json({ status: 'degraded', database: 'down', message: err.message });
+    // Jangan bocorkan err.message (bisa berisi host/kredensial string koneksi).
+    require('./lib/logger').error('health_db_down', { request_id: req.id, error: String(err.message).slice(0, 100) });
+    return res.status(503).json({ status: 'degraded', database: 'down', api: API_LIFECYCLE });
   }
+});
+
+// Provider health internal (opsional, buat debugging — data sudah sanitasi:
+// hanya counter/latency/kategori, tanpa URL user/credential).
+app.get('/api/health/providers', (req, res) => {
+  const { healthSnapshot } = require('./lib/resilience');
+  return res.json({
+    instance_local: true, // jujur: metrics ini per Vercel instance, bukan global
+    providers: healthSnapshot(),
+  });
 });
 
 // 404 + error handler TERAKHIR (setelah semua route)

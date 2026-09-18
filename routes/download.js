@@ -89,7 +89,18 @@ router.get('/:platform', downloadLimiter, requireScope('downloads:read'), async 
       default: return next();
     }
   } catch (e) {
-    if (e.payload) return res.status(e.status || 502).json(e.payload);
+    // Log detail internal (kategori + pesan asli) di server SAJA; respons client
+    // memakai pesan yang sudah dinormalisasi (tanpa nama provider mentah/URL).
+    if (e.payload) {
+      require('../lib/logger').warn('provider_failure', {
+        request_id: req.id,
+        platform,
+        category: e.category || 'DOWNLOAD_FAILED',
+        breaker: e.breaker,
+        detail: String(e.message).slice(0, 120),
+      });
+      return res.status(e.status || 502).json(e.payload);
+    }
     return next(e);
   }
 });

@@ -160,6 +160,33 @@ logout-all.
 
 **Docs**: quickstart (base URL, auth, contoh curl) + changelog developer-facing.
 
+
+### Provider resilience (Phase 5)
+
+- **Timeout policy terpusat** (`lib/resilience.js`): setiap request ke provider
+  eksternal lewat `providerFetch()` — bounded timeout (default 12s),
+  redirect selalu `manual` (SSF/SSRF), respons tidak pernah menggantung.
+- **Retry hanya transient**: timeout, network failure, upstream 5xx, dan 429
+  di-retry maksimal 2x dengan exponential backoff + jitter. Permanent 4xx,
+  SSRF rejection, dan input invalid TIDAK pernah di-retry.
+- **Circuit breaker instance-local** (jujur: BUKAN distributed — Vercel
+  serverless ephemeral, tanpa Redis sesuai keputusan proyek): threshold 5
+  failure → OPEN 30 detik → HALF_OPEN probe → recovery. Manfaatnya: instance
+  hangat berhenti menembak provider yang sedang down; fallback tetap jalan.
+- **Health tracking** per provider (counter success/fail/timeout, latency,
+  kategori error terakhir) — in-memory, tanpa URL user/credential. Lihat
+  `GET /api/health/providers` (flag `instance_local: true`).
+- **Error normalization**: client hanya menerima kategori aman —
+  `PROVIDER_TIMEOUT`, `PROVIDER_UNAVAILABLE`, `PROVIDER_BAD_RESPONSE`,
+  `PROVIDER_RATE_LIMITED`, `PROVIDER_UNSUPPORTED`, `DOWNLOAD_FAILED` —
+  dengan pesan manusiawi. Nama provider mentah, URL internal, dan detail
+  error hanya di log server.
+- **Usage retention**: cleanup `api_usage` > 30 hari, BOUNDED (maks 5000
+  baris per panggilan, throttled per jam) — tidak pernah jadi massive DELETE
+  di request user. Audit logs/sessions/keys tidak tersentuh.
+- **Health endpoint**: `/api/health` kini membedakan app ok vs DB degraded
+  (503, tanpa detail koneksi) + metadata lifecycle (`api.current/supported/docs`).
+
 ### API versioning & response envelope (Phase 3)
 
 - **`/api/v1/...` = canonical API.** Router yang sama dengan legacy, format

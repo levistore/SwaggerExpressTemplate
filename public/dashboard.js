@@ -19,6 +19,16 @@
   }
   function empty(msg) { return '<p class="muted empty-state">' + esc(msg) + '</p>'; }
 
+  // Pesan error ramah — tanpa detail backend mentah.
+  function humanMsg(err) {
+    var s = err && err.status;
+    if (s === 401) return 'Sesi lu sudah berakhir — login ulang dulu.';
+    if (s === 429) return 'Terlalu banyak permintaan — tunggu sebentar lalu coba lagi.';
+    if (s >= 500) return 'Server sedang bermasalah — coba lagi beberapa saat.';
+    return (err && err.message) || 'Terjadi kesalahan.';
+  }
+
+
   // ------------------------------------------------------------------
   // tabs (?tab=overview|keys|usage|requests)
   // ------------------------------------------------------------------
@@ -37,6 +47,15 @@
   // ------------------------------------------------------------------
   // Overview
   // ------------------------------------------------------------------
+  function maybeRedirect(err) {
+    if (err && err.status === 401) {
+      L.setToken(''); L.setRefresh(''); L.setSessionId('');
+      window.location.href = '/profile';
+      return true;
+    }
+    return false;
+  }
+
   function loadOverview() {
     L.api('GET', '/api/v1/dashboard/overview').then(function (o) {
       var t = o.totals || {};
@@ -62,11 +81,9 @@
           return '<div class="mini-row"><span>' + esc(a.action) + '</span><span class="muted">' + esc(fmtTime(a.created_at)) + '</span></div>';
         }).join('');
       }
-    }).catch(function (err) { L.toast(err.message || 'Gagal memuat overview', 'error'); });
+    }).catch(function (err) { if (!maybeRedirect(err)) L.toast(humanMsg(err), 'error'); });
   }
 
-  // ------------------------------------------------------------------
-  // API Keys
   // ------------------------------------------------------------------
   function loadKeys() {
     L.api('GET', '/api/keys').then(function (keys) {
@@ -85,7 +102,7 @@
               '<button class="btn btn--danger btn--sm" data-act="revoke" data-id="' + k.id + '">Revoke</button>' +
             '</div></div></div>';
       }).join('');
-    }).catch(function (err) { L.toast(err.message || 'Gagal memuat keys', 'error'); });
+    }).catch(function (err) { if (!maybeRedirect(err)) L.toast(humanMsg(err), 'error'); });
   }
 
   function openKeyModal(raw) {
@@ -111,7 +128,7 @@
       q('#newKeyModal').hidden = true;
       q('#nkForm').reset();
       openKeyModal(k.key);
-    }).catch(function (err) { L.toast(err.message || 'Gagal membuat key', 'error'); });
+    }).catch(function (err) { L.toast(humanMsg(err), 'error'); });
   }
 
   // ------------------------------------------------------------------
@@ -155,7 +172,7 @@
               '<span class="muted">' + r.n + '× · ' + r.avg_ms + ' ms</span></div>';
           }).join('')
         : empty('Belum ada data.');
-    }).catch(function (err) { L.toast(err.message || 'Gagal memuat usage', 'error'); });
+    }).catch(function (err) { if (!maybeRedirect(err)) L.toast(humanMsg(err), 'error'); });
   }
 
   // ------------------------------------------------------------------
@@ -183,7 +200,7 @@
       q('#reqTotal').textContent = 'Total ' + r.total + ' request';
       q('#reqPrev').disabled = reqOffset <= 0;
       q('#reqNext').disabled = reqOffset + r.limit >= r.total;
-    }).catch(function (err) { L.toast(err.message || 'Gagal memuat requests', 'error'); });
+    }).catch(function (err) { L.toast(humanMsg(err), 'error'); });
   }
 
   // ------------------------------------------------------------------
@@ -261,3 +278,4 @@
     q('#reqNext').addEventListener('click', function () { reqOffset += 25; loadRequests(); });
   });
 })();
+
