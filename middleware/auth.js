@@ -27,6 +27,22 @@ async function requireAuth(req, res, next) {
   }
 
   req.user = { id, email: payload.email, role: payload.role === 'admin' ? 'admin' : 'user' };
+
+  // Session binding opsional: klien boleh kirim X-Session-Id supaya operasi
+  // "kecuali sesi ini" (ganti password) tahu sesi mana yang dipertahankan.
+  // ID diverifikasi milik user & masih aktif — kalau nggak, diabaikan diam.
+  const sid = parseInt(req.headers['x-session-id'], 10);
+  if (Number.isInteger(sid) && sid > 0) {
+    try {
+      const db = require('../lib/db');
+      const { rows } = await db.query(
+        `select id from sessions where id = $1 and user_id = $2 and revoked_at is null and expires_at > now()`,
+        [sid, req.user.id]
+      );
+      if (rows.length > 0) req.sessionId = sid;
+    } catch { /* opsional — jangan blok request karena ini */ }
+  }
+
   return next();
 }
 

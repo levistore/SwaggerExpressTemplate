@@ -4,6 +4,8 @@ const db = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, cleanEmail, cleanPassword, ValidationError } = require('../lib/validate');
+const sessions = require('../lib/sessions');
+const { clientIp } = require('../lib/ratelimit');
 const {
   hashPassword,
   verifyPassword,
@@ -127,7 +129,20 @@ router.post('/register', async (req, res) => {
 
     const user = rows[0];
     const token = await signToken(user);
-    return res.status(201).json({ token, tokenType: 'Bearer', expiresIn: TOKEN_TTL, user });
+
+    // Phase 2B: register juga langsung dapat session (konsisten dengan login).
+    const sess = await sessions.createSession(user.id, {
+      userAgent: req.headers['user-agent'],
+      ip: clientIp(req),
+    }).catch(() => null);
+
+    return res.status(201).json({
+      token,
+      tokenType: 'Bearer',
+      expiresIn: TOKEN_TTL,
+      user,
+      ...(sess ? { refreshToken: sess.refreshToken, sessionId: sess.session.id } : {}),
+    });
   } catch (err) {
     if (err.code === UNIQUE_VIOLATION) {
       return res.status(409).json({ message: 'Email is already registered' });
@@ -189,11 +204,20 @@ router.post('/login', async (req, res) => {
     }
 
     const token = await signToken(user);
+
+    // Phase 2B: session + refresh token (backwards-compatible — field lama
+    // tetap, field baru ditambahkan: refreshToken, sessionId).
+    const sess = await sessions.createSession(user.id, {
+      userAgent: req.headers['user-agent'],
+      ip: clientIp(req),
+    }).catch(() => null); // kegagalan sesi jangan bikin login gagal total
+
     return res.json({
       token,
       tokenType: 'Bearer',
       expiresIn: TOKEN_TTL,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      ...(sess ? { refreshToken: sess.refreshToken, sessionId: sess.session.id } : {}),
     });
   } catch (err) {
     console.error('[POST /api/auth/login]', err.message);
@@ -313,10 +337,128 @@ router.put('/me', requireAuth, async (req, res) => {
       `update users set ${sets.join(', ')} where id = $${vals.length} returning ${COLUMNS}`,
       vals
     );
+
+    // Ganti password → semua sesi LAIN dicabut (sesi saat ini tetap dipakai,
+    // biar user nggak ke-logout sendiri). Perilaku didokumentasikan di README.
+    if (password !== undefined) {
+      await sessions.revokeAllSessions(req.user.id, { exceptSessionId: req.sessionId }).catch(() => {});
+    }
+
     return res.json(upd.rows[0]);
   } catch (err) {
     console.error('[PUT /api/auth/me]', err.message);
     return res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/refresh — tukar refresh token dgn access token baru.
+// Refresh token diputar di tiap pemakaian; reuse → seluruh family direvoke.
+// ---------------------------------------------------------------------------
+router.post('/refresh', async (req, res, next) => {
+  const raw = req.body && req.body.refreshToken;
+  if (typeof raw !== 'string' || raw.length < 20 || raw.length > 512) {
+    return res.status(400).json({ message: 'refreshToken wajib diisi.' });
+  }
+  try {
+    const result = await sessions.rotateSession(raw, {
+      userAgent: req.headers['user-agent'],
+      ip: clientIp(req),
+    });
+    // Access token baru dibuat dari data user terkini (role bisa berubah).
+    const { rows } = await db.query(
+      `select ${COLUMNS} from users where id = $1`,
+      [result.user_id]
+    );
+    if (rows.length === 0) {
+      await sessions.revokeSession(result.session.id, result.user_id);
+      return res.status(401).json({ message: 'User not found' });
+    }
+    const token = await signToken(rows[0]);
+    return res.json({
+      token,
+      tokenType: 'Bearer',
+      expiresIn: TOKEN_TTL,
+      refreshToken: result.refreshToken,
+      sessionId: result.session.id,
+      user: rows[0],
+    });
+  } catch (e) {
+    if (e.code === 'INVALID' || e.code === 'EXPIRED') {
+      return res.status(401).json({ message: e.message });
+    }
+    if (e.code === 'REUSE') {
+      return res.status(401).json({ message: e.message, code: 'REFRESH_REUSE_DETECTED' });
+    }
+    return next(e);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/logout — revoke refresh token yang dikirim.
+// Access JWT yang masih berlaku TETAP valid sampai expired (tidak ada
+// blacklist access token) — didokumentasikan; refresh token-nya mati.
+// ---------------------------------------------------------------------------
+router.post('/logout', async (req, res) => {
+  const raw = req.body && req.body.refreshToken;
+  if (typeof raw !== 'string' || raw.length > 512) {
+    return res.status(400).json({ message: 'refreshToken wajib diisi.' });
+  }
+  // Revoke by hash — tanpa perlu auth, karena pemegang token adalah pemiliknya.
+  const h = sessions.hashToken(raw);
+  try {
+    await db.query(
+      `update sessions set revoked_at = now() where token_hash = $1 and revoked_at is null`,
+      [h]
+    );
+    return res.json({ message: 'Logged out' });
+  } catch (err) {
+    console.error('[POST /api/auth/logout]', err.message);
+    return res.status(500).json({ message: 'Failed to log out' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/auth/sessions — metadata sesi aktif milik user (tanpa token).
+// ---------------------------------------------------------------------------
+router.get('/sessions', requireAuth, async (req, res) => {
+  try {
+    const rows = await sessions.listSessions(req.user.id);
+    return res.json(rows);
+  } catch (err) {
+    console.error('[GET /api/auth/sessions]', err.message);
+    return res.status(500).json({ message: 'Failed to list sessions' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/auth/sessions/:id — revoke satu sesi milik user (anti-IDOR).
+// ---------------------------------------------------------------------------
+router.delete('/sessions/:id', requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id < 1) {
+    return res.status(404).json({ message: 'Session not found' });
+  }
+  try {
+    const ok = await sessions.revokeSession(id, req.user.id);
+    if (!ok) return res.status(404).json({ message: 'Session not found' });
+    return res.json({ message: 'Session revoked' });
+  } catch (err) {
+    console.error('[DELETE /api/auth/sessions/:id]', err.message);
+    return res.status(500).json({ message: 'Failed to revoke session' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/auth/logout-all — revoke semua sesi user.
+// ---------------------------------------------------------------------------
+router.post('/logout-all', requireAuth, async (req, res) => {
+  try {
+    const n = await sessions.revokeAllSessions(req.user.id);
+    return res.json({ message: 'All sessions revoked', revoked: n });
+  } catch (err) {
+    console.error('[POST /api/auth/logout-all]', err.message);
+    return res.status(500).json({ message: 'Failed to revoke sessions' });
   }
 });
 
