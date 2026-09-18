@@ -6,6 +6,7 @@ const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, cleanEmail, cleanPassword, ValidationError } = require('../lib/validate');
 const sessions = require('../lib/sessions');
 const { audit } = require('../lib/audit');
+const webhooks = require('../lib/webhooks');
 const { clientIp } = require('../lib/ratelimit');
 const {
   hashPassword,
@@ -520,6 +521,7 @@ router.delete('/sessions/:id', requireAuth, async (req, res) => {
   try {
     const ok = await sessions.revokeSession(id, req.user.id);
     if (!ok) return res.status(404).json({ message: 'Session not found' });
+    webhooks.dispatch(req.user.id, 'SESSION_REVOKED', { session_id: id });
     audit({ actorUserId: req.user.id, action: 'SESSION_REVOKED', targetType: 'session', targetId: id, req });
     return res.json({ message: 'Session revoked' });
   } catch (err) {
@@ -535,7 +537,7 @@ router.post('/logout-all', requireAuth, async (req, res) => {
   try {
     const n = await sessions.revokeAllSessions(req.user.id);
     audit({ actorUserId: req.user.id, action: 'LOGOUT_ALL', targetType: 'user', targetId: req.user.id, req, metadata: { revoked: n } });
-    return res.json({ message: 'All sessions revoked', revoked: n });
+    webhooks.dispatch(req.user.id, 'SESSION_REVOKED', { scope: 'all' });    return res.json({ message: 'All sessions revoked', revoked: n });
   } catch (err) {
     console.error('[POST /api/auth/logout-all]', err.message);
     return res.status(500).json({ message: 'Failed to revoke sessions' });

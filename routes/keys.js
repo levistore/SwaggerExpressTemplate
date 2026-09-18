@@ -10,6 +10,8 @@ const db = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, ValidationError } = require('../lib/validate');
+const webhooks = require('../lib/webhooks');
+const { withIdempotency } = require('../lib/idempotency');
 const apikeys = require('../lib/apikeys');
 const { audit } = require('../lib/audit');
 
@@ -74,7 +76,12 @@ router.get('/', async (req, res) => {
  *       401: { description: Token tidak valid }
  *       409: { description: Batas jumlah key aktif tercapai }
  */
-router.post('/', async (req, res) => {
+router.post('/', withIdempotency(async (req) => {
+  const res = {
+    status(code) { this._s = code; return this; },
+    json(body) { return { status: this._s, body }; },
+  };
+  {
   try {
     var name = cleanString(req.body && req.body.name, { field: 'Name', max: 100 });
   } catch (e) {
@@ -121,12 +128,14 @@ router.post('/', async (req, res) => {
     );
 
     audit({ actorUserId: req.user.id, action: 'API_KEY_CREATED', targetType: 'api_key', targetId: rows[0].id, req, metadata: { scopes, has_expiry: !!expiresAt } });
+    webhooks.dispatch(req.user.id, 'API_KEY_CREATED', { key_id: rows[0].id, name: rows[0].name, scopes });
     return res.status(201).json({ ...rows[0], key: raw });
   } catch (err) {
     console.error('[POST /api/keys]', err.message);
     return res.status(500).json({ message: 'Failed to create API key' });
   }
-});
+  }
+}));
 
 /**
  * @swagger
@@ -153,6 +162,7 @@ router.delete('/:id', async (req, res) => {
     const ok = await apikeys.revokeKey(id, req.user.id);
     if (!ok) return res.status(404).json({ message: 'API key not found' });
     audit({ actorUserId: req.user.id, action: 'API_KEY_REVOKED', targetType: 'api_key', targetId: id, req });
+    webhooks.dispatch(req.user.id, 'API_KEY_REVOKED', { key_id: id });
     return res.json({ message: 'API key revoked' });
   } catch (err) {
     console.error('[DELETE /api/keys/:id]', err.message);
@@ -177,7 +187,12 @@ router.delete('/:id', async (req, res) => {
  *         description: Key baru. Simpan `key` — tidak akan dikirim lagi.
  *       404: { description: Key tidak ditemukan (atau bukan milikmu) }
  */
-router.post('/:id/rotate', async (req, res) => {
+router.post('/:id/rotate', withIdempotency(async (req) => {
+  const res = {
+    status(code) { this._s = code; return this; },
+    json(body) { return { status: this._s, body }; },
+  };
+  {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id) || id < 1) {
     return res.status(404).json({ message: 'API key not found' });
@@ -207,11 +222,13 @@ router.post('/:id/rotate', async (req, res) => {
     await apikeys.revokeKey(id, req.user.id);
 
     audit({ actorUserId: req.user.id, action: 'API_KEY_ROTATED', targetType: 'api_key', targetId: inserted.rows[0].id, req, metadata: { old_key_id: id } });
+    webhooks.dispatch(req.user.id, 'API_KEY_ROTATED', { key_id: inserted.rows[0].id, old_key_id: id, name: old.name });
     return res.status(201).json({ ...inserted.rows[0], key: raw });
   } catch (err) {
     console.error('[POST /api/keys/:id/rotate]', err.message);
     return res.status(500).json({ message: 'Failed to rotate API key' });
   }
-});
+  }
+}));
 
 module.exports = router;

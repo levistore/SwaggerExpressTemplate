@@ -19,8 +19,11 @@ app.use(security.requestId);
 app.use(security.securityHeaders);
 app.use(security.cors);
 app.use(security.bodyLimit);
-app.use(express.json({ limit: '16kb' }));
-app.use(express.urlencoded({ extended: false, limit: '16kb' }));
+// Raw body capture (Phase 6): idempotency fingerprint & webhook signature
+// butuh byte asli. `verify` option = cara resmi tanpa mengonsumsi stream dua kali.
+const rawBodyVerify = (req, res, buf) => { req.rawBody = buf.toString('utf8'); };
+app.use(express.json({ limit: '16kb', verify: rawBodyVerify }));
+app.use(express.urlencoded({ extended: false, limit: '16kb', verify: rawBodyVerify }));
 
 // Penghalang global: 300 req/menit per IP untuk seluruh /api.
 // Endpoint sensitif dapat limit jauh lebih ketat di route-nya masing-masing.
@@ -69,7 +72,7 @@ const swaggerOptions = {
     openapi: '3.0.0',
     info: {
       title: 'LCODE API',
-      version: '2.0.0',
+      version: '6.0.0',
       description: [
         'LCODE API — downloader multi-platform, auth (JWT + session + refresh token), API keys dengan scopes, quota, audit trail.',
         '',
@@ -90,10 +93,125 @@ const swaggerOptions = {
       ]
     }
   },
+  // Reusable components (Phase 6): security schemes + contract schemas.
+  components: {
+    securitySchemes: {
+      bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'JWT access token dari /api/auth/login ATAU API key `lcode_live_...`.' },
+      apiKeyAuth: { type: 'apiKey', in: 'header', name: 'Authorization', description: 'Kirim API key di header Authorization: `Bearer lcode_live_...`.' },
+    },
+    schemas: {
+      RequestId: { type: 'string', example: 'req_AbCdEf123456' },
+      SuccessResponse: {
+        type: 'object',
+        required: ['success', 'request_id'],
+        properties: {
+          success: { type: 'boolean', example: true },
+          data: { type: 'object', description: 'Payload respons.' },
+          request_id: { $ref: '#/components/schemas/RequestId' },
+        },
+      },
+      ErrorResponse: {
+        type: 'object',
+        required: ['success', 'error', 'request_id'],
+        properties: {
+          success: { type: 'boolean', example: false },
+          error: {
+            type: 'object',
+            required: ['code', 'message'],
+            properties: {
+              code: { type: 'string', example: 'VALIDATION_ERROR' },
+              message: { type: 'string' },
+            },
+          },
+          request_id: { $ref: '#/components/schemas/RequestId' },
+        },
+      },
+      User: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' }, name: { type: 'string' }, email: { type: 'string', format: 'email' },
+          role: { type: 'string', enum: ['user', 'admin'] }, created_at: { type: 'string', format: 'date-time' },
+        },
+      },
+      Session: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' }, created_at: { type: 'string', format: 'date-time' },
+          last_used_at: { type: 'string', format: 'date-time' }, user_agent: { type: 'string' }, ip: { type: 'string' },
+        },
+      },
+      APIKey: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' }, name: { type: 'string' }, prefix: { type: 'string', example: 'lcode_live_AbCd' },
+          scopes: { type: 'array', items: { type: 'string' } }, created_at: { type: 'string', format: 'date-time' },
+          expires_at: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      Usage: {
+        type: 'object',
+        properties: { total: { type: 'integer' }, today: { type: 'integer' }, by_status: { type: 'object' }, by_route: { type: 'object' } },
+      },
+      DashboardOverview: {
+        type: 'object',
+        properties: {
+          total_requests: { type: 'integer' }, requests_today: { type: 'integer' },
+          active_keys: { type: 'integer' }, quota: { type: 'object' },
+        },
+      },
+      DashboardUsage: {
+        type: 'object',
+        properties: { range: { type: 'string' }, total: { type: 'integer' }, by_status: { type: 'object' }, top_endpoints: { type: 'array', items: { type: 'object' } } },
+      },
+      DashboardRequest: {
+        type: 'object',
+        properties: {
+          id: { type: 'integer' }, route: { type: 'string' }, method: { type: 'string' },
+          status_code: { type: 'integer' }, duration_ms: { type: 'integer' }, created_at: { type: 'string', format: 'date-time' },
+        },
+      },
+      HealthResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', enum: ['ok', 'degraded'] },
+          database: { type: 'string' }, uptime: { type: 'number' },
+          api: { type: 'object', properties: { current: { type: 'string' }, supported: { type: 'array', items: { type: 'string' } }, docs: { type: 'string' } } },
+          time: { type: 'string', format: 'date-time' },
+        },
+      },
+      ProviderHealth: {
+        type: 'object',
+        properties: {
+          provider: { type: 'string' }, total: { type: 'integer' }, success: { type: 'integer' },
+          failures: { type: 'integer' }, timeouts: { type: 'integer' }, avg_ms: { type: 'number' },
+          circuit: { type: 'string', enum: ['closed', 'open', 'half_open'] }, instance_local: { type: 'boolean' },
+        },
+      },
+      Webhook: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' }, url: { type: 'string' },
+          events: { type: 'array', items: { type: 'string', enum: ['API_KEY_CREATED', 'API_KEY_ROTATED', 'API_KEY_REVOKED', 'SESSION_REVOKED'] } },
+          active: { type: 'boolean' }, secret_prefix: { type: 'string', example: 'whsec_AbC' },
+          failure_count: { type: 'integer' }, last_status: { type: 'integer', nullable: true },
+          created_at: { type: 'string', format: 'date-time' }, updated_at: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
+  },
   apis: ['./routes/*.js'] // Path to the API routes files
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
+
+// (Phase 6) swaggerJsdoc menimpa definition.components dengan hasil anotasi —
+// gabungkan kembali schema reusable & securitySchemes agar /api/docs.json
+// tetap jadi kontrak lengkap.
+const BASE_SCHEMAS = swaggerOptions.components.schemas;
+const ANNOTATED = swaggerDocs.components && swaggerDocs.components.schemas ? swaggerDocs.components.schemas : {};
+swaggerDocs.components = swaggerDocs.components || {};
+swaggerDocs.components.schemas = { ...BASE_SCHEMAS, ...ANNOTATED };
+swaggerDocs.components.securitySchemes = swaggerDocs.components.securitySchemes || swaggerOptions.components.securitySchemes;
 
 // Check if running in Vercel production environment
 const isVercelProduction = process.env.VERCEL_ENV === 'production';
@@ -118,12 +236,14 @@ const authRoutes = require('./routes/auth');
 const downloadRoutes = require('./routes/download');
 const keysRoutes = require('./routes/keys');
 const dashboardRoutes = require('./routes/dashboard');
+const webhooksRoutes = require('./routes/webhooks');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/download', downloadRoutes);
 app.use('/api/keys', keysRoutes);
+app.use('/api/webhooks', webhooksRoutes);
 
 // ---------------------------------------------------------------------------
 // API versioning (Phase 3): /api/v1 = canonical API. Alias dari router yang
@@ -136,6 +256,7 @@ app.use('/api/v1/auth', envelopedRouter(authRoutes));
 app.use('/api/v1/users', envelopedRouter(usersRoutes));
 app.use('/api/v1/download', envelopedRouter(downloadRoutes));
 app.use('/api/v1/keys', envelopedRouter(keysRoutes));
+app.use('/api/v1/webhooks', envelopedRouter(webhooksRoutes));
 app.use('/api/v1/dashboard', envelopedRouter(dashboardRoutes));
 
 // Health check — status nyata (DB di-ping beneran, nggak hardcode ok)

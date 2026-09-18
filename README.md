@@ -161,6 +161,64 @@ logout-all.
 **Docs**: quickstart (base URL, auth, contoh curl) + changelog developer-facing.
 
 
+
+### API contracts, idempotency & webhooks (Phase 6)
+
+- **Idempotency**: header `Idempotency-Key` (8..255 `[A-Za-z0-9._~-]`) pada
+  `POST /api/keys`, `POST /api/keys/{id}/rotate`, `POST /api/webhooks`.
+  Replay (key sama + payload sama) → respons tersimpan dikembalikan persis
+  (retensi 24 jam); payload beda → 409; scoped per user; tidak untuk GET.
+- **Webhooks** (`/api/webhooks`): create/list/update/delete, rotate secret,
+  test delivery, riwayat delivery. Events: `API_KEY_CREATED`, `API_KEY_ROTATED`,
+  `API_KEY_REVOKED`, `SESSION_REVOKED`. Secret `whsec_...` raw sekali-lihat,
+  tersimpan sebagai SHA-256 hash (pola API keys).
+- **Signature**: `X-LCODE-Signature: sha256=<hmac_sha256_hex(secret, RAW_BODY)>`
+  + `X-LCODE-Event-Id` (dedup client). Verifikasi harus pakai RAW body —
+  contoh di `examples/node/verify-webhook.js`. Delivery **at-least-once**.
+- **Webhook delivery**: sinkron fire-and-forget pasca-aksi, timeout 8s,
+  retry transient-only 1x — BUKAN queue enterprise (batasan serverless, jujur
+  didokumentasikan).
+- **Webhook SSRF**: HTTPS wajib, block loopback/private/link-local/metadata/
+  reserved, redirect manual, timeout ketat. TIDAK menjadi bypass SSRF downloader.
+- **OpenAPI** (`/api/docs.json`): reusable schemas (SuccessResponse, ErrorResponse,
+  User, Session, APIKey, Usage, DashboardOverview/Usage/Request, HealthResponse,
+  ProviderHealth, Webhook) + securitySchemes bearer/apiKey.
+- **Examples**: `examples/curl/`, `examples/javascript/`, `examples/node/`
+  (client prototype — BUKAN official SDK).
+
+#### Error Code Catalog (source of truth = kode aktual)
+
+| Kategori | Code | HTTP | Arti |
+|---|---|---|---|
+| Auth | `UNAUTHORIZED` | 401 | Tidak ada / token tidak valid |
+| Auth | `INVALID_CREDENTIALS` (login gagal) | 401 | Email/password salah |
+| Auth | `REFRESH_REUSE_DETECTED` | 401 | Refresh token dipakai ulang → family revoked |
+| Authz | `FORBIDDEN` | 403 | Bukan admin / scope kurang (`SCOPE_DENIED`) |
+| Validation | `INVALID_REQUEST` / `VALIDATION_ERROR` | 400 | Input tidak valid |
+| Validation | `INVALID_RANGE` | 400 | Parameter range/filter tidak valid |
+| Conflict | `CONFLICT` | 409 | Duplikat / batas key-webhook tercapai / idempotency conflict |
+| Not Found | `NOT_FOUND` | 404 | Resource tidak ada / bukan milikmu |
+| Rate/Quota | `RATE_LIMITED` | 429 | Rate limit per menit (Retry-After) |
+| Rate/Quota | `QUOTA_EXCEEDED` | 429 | Quota harian/per-menit API key |
+| Security | `SSRF_BLOCKED` | 400 | URL menarget internal/metadata |
+| Provider | `PROVIDER_TIMEOUT` | 502 | Provider tidak merespons |
+| Provider | `PROVIDER_UNAVAILABLE` | 502/503 | Provider down / circuit open |
+| Provider | `PROVIDER_BAD_RESPONSE` | 502 | Respons provider tak bisa diproses |
+| Provider | `PROVIDER_RATE_LIMITED` | 502 | Provider membatasi |
+| Provider | `PROVIDER_UNSUPPORTED` | 400 | Platform/URL tidak didukung |
+| Provider | `DOWNLOAD_FAILED` | 502 | Gagal mendapatkan link unduhan |
+| Server | `INTERNAL_ERROR` | 500 | Kesalahan internal |
+| Server | `SERVICE_UNAVAILABLE` | 503 | DB down / degraded |
+
+#### API Lifecycle
+
+- **Current**: `v1` (`/api/v1/*`, envelope standar).
+- **Legacy**: `/api/*` tetap didukung penuh (compatibility layer), TIDAK dideprekasi.
+- **Deprecation policy**: perubahan breaking hanya di versi baru; deprecation
+  diumumkan via changelog + header/`Sunset` bila suatu saat relevan. Belum ada v2.
+- **Non-breaking**: penambahan field respons, endpoint baru, error code baru boleh
+  kapan saja.
+
 ### Provider resilience (Phase 5)
 
 - **Timeout policy terpusat** (`lib/resilience.js`): setiap request ke provider
