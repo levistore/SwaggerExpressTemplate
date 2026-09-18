@@ -3,205 +3,129 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>API Explore — Lcode Api</title>
-<meta name="description" content="Kirim request sungguhan ke Lcode Api dari browser: pilih endpoint, isi body, lihat respons dan waktunya.">
-<meta name="theme-color" content="#050505">
-<meta property="og:title" content="API Explore — Lcode Api">
-<meta property="og:description" content="Kirim request sungguhan ke Lcode Api dari browser: pilih endpoint, isi body, lihat respons dan waktunya.">
-<meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Cpath d='M9 22V10h3.4v9.2H23V22H9Z' fill='%23CCFF00'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>API Playground — Lcode Api</title>
+<meta name="description" content="Console API interaktif: jelajahi katalog endpoint, isi parameter, kirim request nyata, dan lihat respons live.">
+<link rel="icon" type="image/png" href="/maskot.png">
 <link rel="stylesheet" href="/styles.css">
-<script>document.documentElement.className += ' js';</script>
 </head>
 <body>
+<header class="site-header" id="siteHeader"></header>
 
-<!-- lapisan ambience: gradien bergerak pelan, di belakang semua konten -->
-<div class="ambient" aria-hidden="true">
-  <span class="ambient__blob ambient__blob--a"></span>
-  <span class="ambient__blob ambient__blob--b"></span>
-  <span class="ambient__grid"></span>
-</div>
+<nav class="subnav" id="subnav" data-active="playground"></nav>
 
-<a class="skip" href="#main">Lompat ke konten</a>
-
-<header class="nav" id="nav">
-  <div class="wrap nav__inner">
-    <a class="brand" href="/" aria-label="Lcode Api, ke beranda">
-      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
-      <span class="brand__text">Lcode <span class="brand__thin">Api</span></span>
-    </a>
-
-    <nav class="nav__links" aria-label="Navigasi utama">
-        <a href="/">Home</a>
-        <a href="/docs">API Docs</a>
-        <a href="/explore" aria-current="page">API Explore</a>
-        <a href="/pricing">Pricing</a>
-        <a href="/profile">Profile</a>
-    </nav>
-
-    <div class="nav__actions">
-      <a class="btn btn--ghost btn--sm" href="/api-docs">
-        <span>Swagger UI</span>
-        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navMobile" aria-label="Buka menu">
-        <span></span><span></span>
-      </button>
-    </div>
-  </div>
-
-  <div class="nav__mobile" id="navMobile" hidden>
-    <a href="/">Home</a>
-    <a href="/docs">API Docs</a>
-    <a href="/explore" aria-current="page">API Explore</a>
-    <a href="/pricing">Pricing</a>
-    <a href="/profile">Profile</a>
-  </div>
-</header>
-
-<main id="main">
-
-  <section class="page-head">
-    <div class="wrap">
-      <p class="eyebrow" data-reveal><span class="eyebrow__dot" aria-hidden="true"></span>Playground</p>
-      <h1 class="display" data-reveal data-delay="1">API Explore</h1>
-      <p class="lede" data-reveal data-delay="2">
-        Semua endpoint, dikelompokkan per kategori. Buka satu kartu, isi
-        field-nya, tekan Kirim — respons yang muncul itu respons asli dari
-        API yang sama. Nggak ada mock di halaman ini.
-      </p>
-      <div class="meta-row" data-reveal data-delay="3">
-        <span class="meta"><b>4</b> endpoint</span>
-        <span class="meta">Downloader <b>media</b></span>
-        <span class="meta">Respons <b>live</b></span>
-        <span class="meta">Waktu tempuh <b>diukur</b></span>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" style="padding-top:0">
-    <div class="wrap">
-
-      <div class="note" data-reveal>
-        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>
-        <span>
-          Endpoint <b>tulis</b> mengubah database production. Datanya nyata:
-          user yang lu bikin beneran tersimpan, yang lu hapus hilang permanen.
-          Kartu yang menulis ditandai peringatan sebelum lu menekan Kirim.
-        </span>
-      </div>
-
-      <div class="ex" data-reveal data-delay="1">
-
-        <aside class="ex__side">
-          <div class="ex__search">
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7.2" cy="7.2" r="4.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
-            <input id="exSearch" type="search" placeholder="Cari endpoint…"
-                   aria-label="Cari endpoint" spellcheck="false" autocomplete="off">
-          </div>
-
-          <p class="ex__side-label">Kategori</p>
-          <nav class="ex__nav" id="exNav" aria-label="Kategori endpoint"></nav>
-
-          <p class="ex__base">
-            Base URL<br><code id="exBase"></code>
-          </p>
-        </aside>
-
-        <div class="ex__main">
-          <p class="ex__count" id="exCount"></p>
-          <div class="ex__folders" id="exFolders"></div>
-          <div class="ex__empty" id="exEmpty" hidden>
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>
-            <span>Nggak ada endpoint yang cocok. Coba kata kunci lain, atau tekan
-            <b>Semua endpoint</b> di kiri.</span>
+<main>
+  <!-- ============ KATALOG ============ -->
+  <div id="catalogView" style="flex:1">
+    <div class="wrap page-pad" style="max-width:64rem">
+      <div class="stack-6">
+        <div class="page-head">
+          <div class="page-head__title">
+            <img class="page-head__logo" src="/maskot.png" alt="Lcode Api">
+            <div>
+              <h1>API Console</h1>
+              <p>Direct Endpoint Execution Environment — jelajahi, konfigurasikan, dan eksekusi endpoint live.</p>
+            </div>
           </div>
         </div>
 
+        <div class="filters">
+          <div class="filters__methods" id="methodFilter" aria-label="Filter method"></div>
+          <div class="filters__cat">
+            <span class="text-xs-mono text-faint" style="text-transform:uppercase;font-weight:600">Category:</span>
+            <select class="filters__select" id="categoryFilter" aria-label="Filter kategori"></select>
+          </div>
+        </div>
+
+        <div class="stack-6" style="gap:1rem" id="catalogList"></div>
+
+        <p class="text-xs-mono text-faint" id="catalogTotal" style="margin:0"></p>
       </div>
     </div>
-  </section>
+  </div>
 
-  <section class="section section--alt" id="tips">
-    <div class="wrap">
-      <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Tips</p>
-        <h2 class="h2">Biar nggak bingung</h2>
-      </header>
+  <!-- ============ DETAIL ENDPOINT ============ -->
+  <div id="detailView" hidden style="flex:1">
+    <div class="wrap page-pad" style="max-width:64rem">
+      <div class="stack-6">
+        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--line)">
+          <button class="detail-back" id="btnBack">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+            Back to Endpoints Catalog
+          </button>
+        </div>
 
-      <div class="grid-2" data-reveal data-delay="1">
-        <article class="card">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.6" cy="10.4" r="3.1" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m7.9 8.1 5.5-5.5M11.6 4.4l1.5 1.5M13.4 2.6l1.4 1.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg></span>
-          <h3 class="card__title">Token sekali, kepakai di mana-mana</h3>
-          <p class="card__text">
-            Pilih <code>POST /api/auth/register</code>, tekan Kirim, dan
-            token-nya otomatis mengisi kolom bearer di <b>semua</b> kartu yang
-            butuh. Token yang sama juga langsung kepakai di
-            <a href="/profile">Profile</a>.
-          </p>
-        </article>
+        <div class="detail-head">
+          <div class="detail-head__row">
+            <span class="method-chip" id="dMethod"></span>
+            <span class="detail-head__path mono" id="dPath"></span>
+            <span class="chip chip--outline" id="dAuth"></span>
+          </div>
+          <div>
+            <h1 id="dName"></h1>
+            <p id="dDesc"></p>
+          </div>
+        </div>
 
-        <article class="card">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 4.6V8l2.4 1.6" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <h3 class="card__title">Kirim cepat pakai keyboard</h3>
-          <p class="card__text">
-            Fokus di field mana pun dalam kartu, lalu tekan <code>Ctrl</code> +
-            <code>Enter</code> (atau <code>Cmd</code> + <code>Enter</code>) buat
-            mengirim tanpa pindah ke tombol.
-          </p>
-        </article>
+        <div class="detail-grid">
+          <!-- form kiri -->
+          <div>
+            <div class="form-card">
+              <form id="reqForm" autocomplete="off">
+                <div class="auth-note" id="authNote"></div>
+                <div id="fieldsWrap"></div>
+                <div style="padding-top:0.75rem;border-top:1px solid var(--line-soft)">
+                  <button class="btn btn--primary btn--block" style="padding:0.5rem 0.875rem;font-size:0.875rem" type="submit" id="btnExec">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5" style="fill:currentColor" aria-hidden="true"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>
+                    Execute Request
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
 
-        <article class="card">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg></span>
-          <h3 class="card__title">Daftar status itu hasil baca kode</h3>
-          <p class="card__text">
-            Tiap kartu mencantumkan status yang benar-benar bisa dibalas
-            endpoint-nya — termasuk pesan error aslinya, bukan tebakan. Kalau
-            handler-nya berubah, daftar ini yang perlu ikut diubah.
-          </p>
-        </article>
+          <!-- preview + respons kanan -->
+          <div class="stack-6" style="gap:1.5rem">
+            <div class="request-preview">
+              <div class="request-preview__head">
+                <span class="request-preview__label">Request Preview</span>
+                <div class="request-preview__actions">
+                  <button type="button" class="request-preview__copy" id="btnCopy">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    Copy cURL
+                  </button>
+                </div>
+              </div>
+              <div class="request-preview__line">
+                <span class="request-preview__method" id="pvMethod"></span>
+                <span class="request-preview__url" id="pvUrl"></span>
+              </div>
+            </div>
 
-        <article class="card">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <h3 class="card__title">cURL-nya ikut nilai yang lu isi</h3>
-          <p class="card__text">
-            Perintah cURL di bawah tiap kartu dibangun dari field yang lagi lu
-            isi. Salin, tempel di terminal, hasilnya sama dengan yang lu lihat
-            di kotak Response.
-          </p>
-        </article>
+            <div class="stack-6" style="gap:0.75rem">
+              <div class="resp-head"><h3>API Response</h3><span class="text-xs-mono text-faint" id="respTime"></span></div>
+              <div class="resp-empty" id="respEmpty">
+                <div style="max-width:20rem;margin:0 auto">
+                  <p>Belum ada request yang dikirim</p>
+                  <p>Isi form di samping lalu klik "Execute Request" untuk melihat respons API langsung.</p>
+                </div>
+              </div>
+              <div class="resp-box" id="respBox" hidden>
+                <div class="resp-box__bar">
+                  <span class="resp-box__status" id="respStatus"></span>
+                  <span class="text-faint mono" id="respMeta"></span>
+                </div>
+                <div class="resp-media" id="respMedia" hidden></div>
+                <pre class="resp-box__body" id="respBody"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
-
+  </div>
 </main>
 
-<footer class="foot">
-  <div class="wrap foot__inner">
-    <div class="foot__brand">
-      <span class="brand__mark brand__mark--sm"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
-      <span>Lcode Api</span>
-    </div>
-    <nav class="foot__links" aria-label="Navigasi footer">
-      <a href="/">Home</a>
-      <a href="/docs">API Docs</a>
-      <a href="/explore">API Explore</a>
-      <a href="/pricing">Pricing</a>
-      <a href="/profile">Profile</a>
-      <a href="/api-docs">Swagger UI</a>
-      <a href="/api/users">Status</a>
-    </nav>
-    <p class="foot__note">
-      Dibangun di atas Express, Postgres, dan Vercel. Font Inter &amp; JetBrains Mono.
-    </p>
-  </div>
-</footer>
-
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-
+<footer class="site-footer" id="siteFooter"></footer>
 <script src="/shell.js"></script>
 <script src="/explore.js"></script>
 </body>

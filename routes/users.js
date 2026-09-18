@@ -99,7 +99,7 @@ function parseId(raw) {
  */
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await db.query(`select ${COLUMNS} from users order by id`);
+    const { rows } = await db.query('select id, name, email, role, created_at from users order by id');
     res.json(rows);
   } catch (err) {
     console.error('[GET /api/users]', err.message);

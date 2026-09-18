@@ -1,324 +1,167 @@
 /* Lcode Api — profile.js
-   Halaman akun. Semua data di sini datang dari API: nggak ada profil
-   contoh yang ditempel. Kalau tokennya nggak valid, halaman balik ke
-   formulir masuk dengan pesan yang jelas. */
+   Login, register, dan halaman akun. State auth dari shell.js.
+   Cek password baru dikirim apa adanya — aturan kuat divalidasi server.
+*/
 (function () {
   'use strict';
   var L = window.Lcode;
 
-  var me = null;          // user yang sedang masuk
-  var token = '';         // token aktif
+  function q(sel) { return document.querySelector(sel); }
 
-  function err(id, msg) {
-    var el = L.$(id);
-    if (!el) return;
-    el.textContent = msg || '';
-    el.hidden = !msg;
-    // biar pesan error kelihatan merah, bukan abu-abu seperti teks bantuan
-    el.classList.toggle('is-err', !!msg);
+  // ------------------------------------------------------------------
+  // tampilan login vs profil
+  // ------------------------------------------------------------------
+  function showAuth(mode) {
+    var register = mode === 'register';
+    q('#profileView').hidden = true;
+    q('#subnav').hidden = true;
+    q('#authView').hidden = false;
+    q('#authTitle').textContent = register ? 'Create Developer Account' : 'Sign in to Lcode Api';
+    q('#authDesc').textContent = register
+      ? 'Dapatkan akses langsung ke REST API dan interactive playground.'
+      : 'Akses playground, katalog downloader, dan kelola akun lu.';
+    q('#loginForm').hidden = register;
+    q('#registerForm').hidden = !register;
+    q('#footLink').textContent = register ? 'Sign in' : 'Create developer account';
+    q('#footLink').setAttribute('data-mode', register ? 'login' : 'register');
   }
 
-  function busy(btn, on) {
-    btn.disabled = on;
-    btn.setAttribute('aria-busy', on ? 'true' : 'false');
+  function showProfile(me) {
+    q('#authView').hidden = true;
+    q('#subnav').hidden = false;
+    q('#profileView').hidden = false;
+
+    q('#pAvatar').textContent = (me.name || me.email || '?').charAt(0);
+    q('#pName').textContent = me.name || '—';
+    q('#pEmail').textContent = me.email || '—';
+    var roleEl = q('#pRole');
+    roleEl.textContent = (me.role || 'user').toUpperCase();
+    roleEl.className = 'chip ' + (me.role === 'admin' ? 'chip--green' : 'chip--gray');
+    q('#pId').textContent = me.id != null ? String(me.id) : '—';
+    q('#ufName').value = me.name || '';
+    q('#ufEmail').value = me.email || '';
   }
 
-  function show(view) {
-    var auth = L.$('authView'), prof = L.$('profileView');
-    if (auth) auth.hidden = view !== 'auth';
-    if (prof) prof.hidden = view !== 'profile';
+  function loadMe() {
+    return L.api('GET', '/api/auth/me')
+      .then(function (me) { showProfile(me); return me; })
+      .catch(function (err) {
+        // token nggak valid/kedaluwarsa → bersihkan & tampil login
+        L.setToken('');
+        showAuth('login');
+        throw err;
+      });
   }
 
-  /* ------------------------------------------------------------------ *
-   * Tampilkan profil
-   * ------------------------------------------------------------------ */
-  function render() {
-    if (!me) return;
+  // ------------------------------------------------------------------
+  // login / register
+  // ------------------------------------------------------------------
+  function doLogin(ev) {
+    ev.preventDefault();
+    var btn = q('#btnLogin');
+    btn.disabled = true;
+    L.api('POST', '/api/auth/login', {
+      email: q('#liEmail').value.trim(),
+      password: q('#liPassword').value
+    }).then(function (res) {
+      L.setToken(res.token);
+      L.toast('Login berhasil — selamat datang, ' + (res.user && res.user.name || '') + '!', 'ok');
+      return loadMe();
+    }).catch(function (err) {
+      L.toast(err.message || 'Login gagal', 'error');
+    }).finally(function () { btn.disabled = false; });
+  }
 
-    var initial = (me.name || '?').trim().charAt(0).toUpperCase() || '?';
-    L.$('identAvatar').textContent = initial;
-    L.$('identName').textContent = me.name;
-    L.$('identMail').textContent = me.email;
+  function doRegister(ev) {
+    ev.preventDefault();
+    var btn = q('#btnRegister');
+    var pw = q('#rgPassword').value;
+    // aturan kuat: cek di UI biar feedback cepat (server tetap cek ulang)
+    if (!q('#rgName').value.trim() || !q('#rgEmail').value.trim()) { L.toast('Nama dan email wajib diisi', 'error'); return; }
+    if (pw.length < 8 || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw)) {
+      L.toast('Password belum memenuhi syarat: min 8 char, ada huruf besar, kecil, dan angka', 'error');
+      return;
+    }
+    btn.disabled = true;
+    L.api('POST', '/api/auth/register', {
+      name: q('#rgName').value.trim(),
+      email: q('#rgEmail').value.trim(),
+      password: pw
+    }).then(function (res) {
+      L.setToken(res.token);
+      L.toast('Akun dibuat — langsung masuk!', 'ok');
+      return loadMe();
+    }).catch(function (err) {
+      L.toast(err.message || 'Register gagal', 'error');
+    }).finally(function () { btn.disabled = false; });
+  }
 
-    L.$('kvId').textContent = '#' + me.id;
-    L.$('kvEmail').textContent = me.email;
-    L.$('kvName').textContent = me.name;
+  // ------------------------------------------------------------------
+  // update profil / password
+  // ------------------------------------------------------------------
+  function doUpdate(ev) {
+    ev.preventDefault();
+    var btn = q('#btnUpd');
+    btn.disabled = true;
+    L.api('PUT', '/api/auth/me', {
+      name: q('#ufName').value.trim(),
+      email: q('#ufEmail').value.trim()
+    }).then(function (me) {
+      L.toast('Profil diperbarui', 'ok');
+      // refresh token biar nama baru ikut di payload UI
+      return loadMe();
+    }).catch(function (err) {
+      L.toast(err.message || 'Gagal memperbarui profil', 'error');
+    }).finally(function () { btn.disabled = false; });
+  }
 
-    var payload = L.decodeJwt(token);
-    if (payload && payload.exp) {
-      var exp = new Date(payload.exp * 1000);
-      var sisa = Math.round((exp.getTime() - Date.now()) / 86400000);
-      L.$('kvExpires').textContent = exp.toLocaleString('id-ID', {
-        dateStyle: 'long', timeStyle: 'short'
-      }) + (sisa >= 0 ? '  (' + sisa + ' hari lagi)' : '  (sudah lewat)');
+  function doPassword(ev) {
+    ev.preventDefault();
+    var nw = q('#pwNew').value;
+    if (nw !== q('#pwConf').value) { L.toast('Konfirmasi password nggak cocok', 'error'); return; }
+    if (nw.length < 8 || !/[A-Z]/.test(nw) || !/[a-z]/.test(nw) || !/[0-9]/.test(nw)) {
+      L.toast('Password baru belum memenuhi syarat kekuatan', 'error');
+      return;
+    }
+    var btn = q('#btnPw');
+    btn.disabled = true;
+    L.api('PUT', '/api/auth/me', {
+      currentPassword: q('#pwCur').value,
+      password: nw
+    }).then(function () {
+      L.toast('Password diganti', 'ok');
+      q('#pwCur').value = ''; q('#pwNew').value = ''; q('#pwConf').value = '';
+    }).catch(function (err) {
+      L.toast(err.message || 'Gagal mengganti password', 'error');
+    }).finally(function () { btn.disabled = false; });
+  }
+
+  function doLogout() {
+    L.setToken('');
+    window.location.href = '/';
+  }
+
+  // ------------------------------------------------------------------
+  // boot
+  // ------------------------------------------------------------------
+  document.addEventListener('DOMContentLoaded', function () {
+    var params = new URLSearchParams(window.location.search);
+    var hasToken = !!L.getToken();
+
+    if (hasToken) {
+      loadMe().catch(function () { /* sudah ditangani loadMe */ });
     } else {
-      L.$('kvExpires').textContent = 'payload token nggak terbaca';
+      showAuth(params.get('mode') === 'register' ? 'register' : 'login');
     }
 
-    if (payload && payload.iat) {
-      L.$('kvIssued').textContent = new Date(payload.iat * 1000).toLocaleString('id-ID', {
-        dateStyle: 'long', timeStyle: 'short'
-      });
-    } else {
-      L.$('kvIssued').textContent = '—';
-    }
-
-    var where = L.tokenWhere();
-    L.$('kvStorage').textContent = where === 'local' ? 'localStorage — bertahan setelah tab ditutup'
-      : where === 'session' ? 'sessionStorage — hilang saat tab ditutup'
-      : 'memori halaman ini saja';
-
-    L.$('tokenPeek').textContent = token.slice(0, 28) + '…' + token.slice(-12);
-
-    L.$('editName').value = me.name;
-    L.$('editEmail').value = me.email;
-
-    show('profile');
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Ambil profil dari token yang tersimpan
-   * ------------------------------------------------------------------ */
-  function loadMe(opts) {
-    opts = opts || {};
-    token = L.getToken();
-
-    if (!token) {
-      show('auth');
-      return Promise.resolve(false);
-    }
-
-    return L.api('/api/auth/me', { token: token })
-      .then(function (r) {
-        if (r.ok && r.data && r.data.id) {
-          me = r.data;
-          render();
-          if (opts.justLoggedIn) L.toast('Masuk sebagai ' + me.name);
-          return true;
-        }
-        // token basi / nggak valid -> jangan biarkan halaman nampilin
-        // profil hantu
-        L.clearToken();
-        me = null;
-        show('auth');
-        err('authErr', r.status === 401
-          ? 'Token-nya nggak valid atau sudah kedaluwarsa. Masuk lagi ya.'
-          : 'API balas HTTP ' + r.status + '.');
-        return false;
-      })
-      .catch(function () {
-        show('auth');
-        err('authErr', 'Nggak bisa menghubungi API dari browser ini.');
-        return false;
-      });
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Tab Masuk / Daftar
-   * ------------------------------------------------------------------ */
-  function initTabs() {
-    var tabs = document.querySelectorAll('#authTabs .tab');
-    for (var i = 0; i < tabs.length; i++) {
-      tabs[i].addEventListener('click', function () {
-        var target = this.getAttribute('data-auth-tab');
-        for (var j = 0; j < tabs.length; j++) {
-          var on = tabs[j] === this;
-          tabs[j].classList.toggle('is-active', on);
-          tabs[j].setAttribute('aria-selected', String(on));
-        }
-        L.$('loginForm').hidden = target !== 'login';
-        L.$('registerForm').hidden = target !== 'register';
-        err('authErr', '');
-        err('loginErr', '');
-        err('registerErr', '');
-      });
-    }
-  }
-
-  function initLogin() {
-    var form = L.$('loginForm');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var btn = L.$('loginSubmit');
-      var email = L.$('loginEmail').value.trim();
-      var password = L.$('loginPassword').value;
-
-      err('loginErr', '');
-      if (!email || !password) { err('loginErr', 'Email dan password dua-duanya wajib diisi.'); return; }
-
-      busy(btn, true);
-      L.api('/api/auth/login', { method: 'POST', body: { email: email, password: password } })
-        .then(function (r) {
-          if (!r.ok || !r.data || !r.data.token) {
-            err('loginErr', (r.data && r.data.message) || ('Gagal masuk — HTTP ' + r.status));
-            return;
-          }
-          L.setToken(r.data.token, L.$('loginRemember').checked);
-          L.$('loginPassword').value = '';
-          return loadMe({ justLoggedIn: true });
-        })
-        .catch(function (e2) { err('loginErr', 'Request gagal: ' + e2.message); })
-        .then(function () { busy(btn, false); });
+    q('#loginForm').addEventListener('submit', doLogin);
+    q('#registerForm').addEventListener('submit', doRegister);
+    q('#updForm').addEventListener('submit', doUpdate);
+    q('#pwForm').addEventListener('submit', doPassword);
+    q('#btnLogout').addEventListener('click', doLogout);
+    q('#footLink').addEventListener('click', function (ev) {
+      ev.preventDefault();
+      showAuth(q('#footLink').getAttribute('data-mode') || 'register');
     });
-  }
-
-  function initRegister() {
-    var form = L.$('registerForm');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var btn = L.$('regSubmit');
-      var name = L.$('regName').value.trim();
-      var email = L.$('regEmail').value.trim();
-      var password = L.$('regPassword').value;
-
-      err('registerErr', '');
-      if (password.length < 8) {
-        err('registerErr', 'Password minimal 8 karakter.');
-        return;
-      }
-
-      busy(btn, true);
-      L.api('/api/auth/register', {
-        method: 'POST', body: { name: name, email: email, password: password }
-      })
-        .then(function (r) {
-          if (!r.ok || !r.data || !r.data.token) {
-            err('registerErr', (r.data && r.data.message) || ('Gagal mendaftar — HTTP ' + r.status));
-            return;
-          }
-          L.setToken(r.data.token, L.$('regRemember').checked);
-          L.$('regPassword').value = '';
-          return loadMe({ justLoggedIn: true });
-        })
-        .catch(function (e2) { err('registerErr', 'Request gagal: ' + e2.message); })
-        .then(function () { busy(btn, false); });
-    });
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Tempel token manual
-   * ------------------------------------------------------------------ */
-  function initManual() {
-    var btn = L.$('manualApply');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      var v = L.$('manualToken').value.trim();
-      err('manualErr', '');
-      if (!v) { err('manualErr', 'Token masih kosong.'); return; }
-      if (v.split('.').length !== 3) {
-        err('manualErr', 'Itu bukan format JWT (harus tiga bagian dipisah titik).');
-        return;
-      }
-      L.setToken(v, L.$('manualRemember') && L.$('manualRemember').checked);
-      busy(btn, true);
-      loadMe({ justLoggedIn: true }).then(function () { busy(btn, false); });
-    });
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Ubah nama + email
-   * ------------------------------------------------------------------ */
-  function initEdit() {
-    var form = L.$('editForm');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!me) return;
-
-      var btn = L.$('editSubmit');
-      var name = L.$('editName').value.trim();
-      var email = L.$('editEmail').value.trim();
-
-      err('editErr', '');
-      // API-nya nolak kalau salah satu kosong — kasih tahu sebelum request
-      if (!name || !email) {
-        err('editErr', 'Nama dan email dua-duanya wajib diisi.');
-        return;
-      }
-
-      busy(btn, true);
-      L.api('/api/users/' + me.id, {
-        method: 'PUT', token: token, body: { name: name, email: email }
-      })
-        .then(function (r) {
-          if (!r.ok) {
-            err('editErr', (r.data && r.data.message) || ('Gagal menyimpan — HTTP ' + r.status));
-            return;
-          }
-          me.name = r.data.name;
-          me.email = r.data.email;
-          render();
-          L.toast('Profil diperbarui');
-        })
-        .catch(function (e2) { err('editErr', 'Request gagal: ' + e2.message); })
-        .then(function () { busy(btn, false); });
-    });
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Keluar & hapus akun
-   * ------------------------------------------------------------------ */
-  function initLogout() {
-    var btn = L.$('logoutBtn');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      L.clearToken();
-      token = '';
-      me = null;
-      L.$('manualToken').value = '';
-      L.$('deleteConfirm').value = '';
-      err('authErr', '');
-      show('auth');
-      L.toast('Sudah keluar');
-    });
-  }
-
-  function initDelete() {
-    var form = L.$('deleteForm');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      if (!me) return;
-
-      var typed = L.$('deleteConfirm').value.trim();
-      err('deleteErr', '');
-
-      // konfirmasi ketik email — nggak bisa kepencet karena salah klik
-      if (typed.toLowerCase() !== me.email.toLowerCase()) {
-        err('deleteErr', 'Ketikan email akun lu persis sama buat konfirmasi.');
-        return;
-      }
-
-      var btn = L.$('deleteSubmit');
-      busy(btn, true);
-      L.api('/api/users/' + me.id, { method: 'DELETE', token: token })
-        .then(function (r) {
-          if (!r.ok) {
-            err('deleteErr', (r.data && r.data.message) || ('Gagal menghapus — HTTP ' + r.status));
-            return;
-          }
-          L.clearToken();
-          token = '';
-          me = null;
-          L.$('deleteConfirm').value = '';
-          show('auth');
-          err('authErr', '');
-          L.toast('Akun dihapus');
-        })
-        .catch(function (e2) { err('deleteErr', 'Request gagal: ' + e2.message); })
-        .then(function () { busy(btn, false); });
-    });
-  }
-
-  /* ------------------------------------------------------------------ */
-  initTabs();
-  initLogin();
-  initRegister();
-  initManual();
-  initEdit();
-  initLogout();
-  initDelete();
-  loadMe();
+  });
 })();

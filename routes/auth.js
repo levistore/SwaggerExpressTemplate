@@ -225,4 +225,82 @@ router.get('/me', requireAuth, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// PUT /api/auth/me — user ubah profil sendiri (nama/email) atau ganti password.
+// Kalau body bawa currentPassword + password → ganti password (verifikasi dulu).
+// ---------------------------------------------------------------------------
+router.put('/me', requireAuth, async (req, res) => {
+  try {
+    const { name, email, currentPassword, password } = req.body || {};
+    const { rows } = await db.query(
+      `select ${COLUMNS}, password_hash from users where id = $1`,
+      [req.user.id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const user = rows[0];
+
+    const sets = [];
+    const vals = [];
+
+    if (name !== undefined) {
+      if (!String(name).trim()) {
+        return res.status(400).json({ message: 'Name nggak boleh kosong' });
+      }
+      vals.push(String(name).trim());
+      sets.push(`name = $${vals.length}`);
+    }
+
+    if (email !== undefined) {
+      const e = String(email).trim();
+      if (!isValidEmail(e)) {
+        return res.status(400).json({ message: 'Valid email is required' });
+      }
+      // cek unik: email milik user lain?
+      const dup = await db.query(
+        'select id from users where lower(email) = lower($1) and id <> $2',
+        [e, req.user.id]
+      );
+      if (dup.rows.length > 0) {
+        return res.status(409).json({ message: 'Email sudah dipakai akun lain' });
+      }
+      vals.push(e);
+      sets.push(`email = $${vals.length}`);
+    }
+
+    if (password !== undefined) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Password baru butuh currentPassword' });
+      }
+      const ok = await verifyPassword(String(currentPassword), user.password_hash);
+      if (!ok) {
+        return res.status(401).json({ message: 'Current password salah' });
+      }
+      if (typeof password !== 'string' || password.length < 8 ||
+          !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+        return res.status(400).json({
+          message: 'Password minimal 8 karakter, harus ada huruf besar, kecil, dan angka'
+        });
+      }
+      vals.push(await hashPassword(password));
+      sets.push(`password_hash = $${vals.length}`);
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ message: 'Nggak ada field yang diubah' });
+    }
+
+    vals.push(req.user.id);
+    const upd = await db.query(
+      `update users set ${sets.join(', ')} where id = $${vals.length} returning ${COLUMNS}`,
+      vals
+    );
+    return res.json(upd.rows[0]);
+  } catch (err) {
+    console.error('[PUT /api/auth/me]', err.message);
+    return res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
 module.exports = router;

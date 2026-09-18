@@ -1,687 +1,406 @@
 /* Lcode Api — explore.js
-   Playground berkategori. Tiap endpoint punya kartunya sendiri: field,
-   tombol Kirim, respons asli, cURL yang dibangun dari nilai yang lu isi,
-   dan daftar status yang benar-benar dikembalikan handler-nya.
-
-   Nggak ada mock dan nggak ada respons contoh: kotak respons mulai dari
-   kosong dan cuma terisi setelah request sungguhan selesai. */
+   API Playground: katalog endpoint terkategori → detail → kirim request nyata.
+   Semua data respons berasal dari server asli. Nggak ada nilai karangan.
+*/
 (function () {
   'use strict';
-
   var L = window.Lcode;
-  var BASE = location.origin;
+  var esc = L.esc;
 
-  /* ------------------------------------------------------------------ *
-   * Ikon (SVG, bukan emoji)
-   * ------------------------------------------------------------------ */
-  var ICO = {
-    search: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7.2" cy="7.2" r="4.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m10.6 10.6 3 3" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>',
-    chev: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    down: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="m3.5 6 4.5 4.5L12.5 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    key: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.6" cy="10.4" r="3.1" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m7.9 8.1 5.5-5.5M11.6 4.4l1.5 1.5M13.4 2.6l1.4 1.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>',
-    eye: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M1.4 8S3.9 3.9 8 3.9 14.6 8 14.6 8 12.1 12.1 8 12.1 1.4 8 1.4 8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.1" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>',
-    pen: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M10.6 2.6 13.4 5.4 5.9 12.9 2.6 13.4 3.1 10.1Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="m9.4 3.8 2.8 2.8" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>',
-    warn: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>',
-    send: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-    x: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg>',
-    copy: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>',
-    dl: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v7.2m0 0 3-3m-3 3-3-3" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 12.8h10.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'
-  };
-
-  /* ------------------------------------------------------------------ *
-   * Katalog endpoint — satu-satunya sumber kebenaran halaman ini.
-   *
-   * Kategori dipakai untuk mengelompokkan, bukan hiasan: isinya memang
-   * beda akses dan beda akibat. Semua status di bawah ini diambil dari
-   * handler aslinya (routes/auth.js, routes/users.js, middleware/auth.js),
-   * bukan tebakan.
-   * ------------------------------------------------------------------ */
-  var TOKEN_MSG = 'Missing bearer token. Kirim header: Authorization: Bearer <token>';
-
+  // ------------------------------------------------------------------
+  // Katalog — hanya endpoint yang benar-benar ada di backend
+  // ------------------------------------------------------------------
   var CATALOG = [
     {
-      id: 'download',
+      id: 'downloader',
       name: 'Downloader',
-      icon: 'dl',
-      desc: 'Tautan unduhan media dari konten publik. Butuh token.',
+      desc: 'Ekstrak tautan unduhan langsung (video/gambar/audio) dari konten publik TikTok, YouTube, Facebook, dan Instagram.',
+      icon: 'image',
+      color: '#8a38f5',
       endpoints: [
         {
-          method: 'GET', path: '/api/download/tiktok', name: 'TikTok',
-          desc: 'Tautan unduhan video TikTok publik: tanpa watermark + MP3. Video privat, foto-only, atau yang dihapus nggak bisa.',
-          auth: true,
+          method: 'GET', path: '/api/download/tiktok', name: 'TikTok Downloader',
+          desc: 'Unduh video TikTok (with-watermark & tanpa watermark) plus audio MP3 dari URL publik.',
+          auth: 'required',
+          fields: [{ key: 'url', label: 'URL TikTok', type: 'url', required: true, ph: 'https://www.tiktok.com/@user/video/...', hint: 'URL video TikTok publik' }]
+        },
+        {
+          method: 'GET', path: '/api/download/youtube', name: 'YouTube Downloader',
+          desc: 'Unduh video YouTube (sampai 4K, tergantung sumber) atau audionya saja. Shorts kadang diminta login oleh sumber — fluktuatif per IP.',
+          auth: 'required',
           fields: [
-            { name: 'url', in: 'query', label: 'url', value: 'https://www.tiktok.com/@tiktok/video/7106594312292453675', hint: 'URL video TikTok publik (tiktok.com/@user/video/... atau vt.tiktok.com/...).' }
-          ],
-          codes: [
-            ['200', 'array of media (video, audio)'],
-            ['400', 'URL tidak valid'],
-            ['401', TOKEN_MSG],
-            ['502', 'ssstik tidak mengembalikan tautan — video privat/dihapus']
+            { key: 'url', label: 'URL YouTube', type: 'url', required: true, ph: 'https://www.youtube.com/watch?v=...', hint: 'URL video / shorts YouTube publik' },
+            { key: 'mode', label: 'Mode', type: 'select', required: false, options: [['video', 'Video'], ['audio', 'Audio (MP3)']], def: 'video', hint: 'audio = link MP3 saja' }
           ]
         },
         {
-          method: 'GET', path: '/api/download/youtube', name: 'YouTube',
-          desc: 'Video & audio (MP4/WebM/OPUS, sampai 4K) untuk video YouTube publik. Shorts kadang ditolak sumbernya — tergantung beban; coba lagi nanti kalau kena.',
-          auth: true,
+          method: 'GET', path: '/api/download/facebook', name: 'Facebook Downloader',
+          desc: 'Unduh video Facebook publik (HD/SD bila tersedia) dari URL postingan atau watch.',
+          auth: 'required',
+          fields: [{ key: 'url', label: 'URL Facebook', type: 'url', required: true, ph: 'https://www.facebook.com/watch?v=...', hint: 'URL video Facebook publik' }]
+        },
+        {
+          method: 'GET', path: '/api/download/instagram', name: 'Instagram Downloader',
+          desc: 'Unduh reel/post/gambar Instagram publik. Catatan jujur: dari IP server (datacenter) Instagram hampir selalu menolak dengan login_required — endpoint ini bisa gagal 502. Itu keterbatasan sumber, bukan bug.',
+          auth: 'required',
+          fields: [{ key: 'url', label: 'URL Instagram', type: 'url', required: true, ph: 'https://www.instagram.com/reel/...', hint: 'URL post / reel Instagram publik' }]
+        }
+      ]
+    },
+    {
+      id: 'auth',
+      name: 'Authentication',
+      desc: 'Daftar akun baru, login, dan cek profil sesi yang sedang aktif. Token JWT dipakai untuk endpoint terproteksi.',
+      icon: 'shield',
+      color: '#1060ff',
+      endpoints: [
+        {
+          method: 'POST', path: '/api/auth/register', name: 'Register Akun Baru',
+          desc: 'Buat akun developer baru. Respons berisi token yang bisa langsung dipakai.',
+          auth: 'public',
           fields: [
-            { name: 'url', in: 'query', label: 'url', value: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', hint: 'URL youtube.com/watch?v=... atau youtube.com/shorts/...' }
-          ],
-          codes: [
-            ['200', 'array of media (video + audio, ukuran dalam MB)'],
-            ['400', 'URL tidak valid'],
-            ['401', TOKEN_MSG],
-            ['502', 'vidssave menolak URL — bukan video publik']
+            { key: 'name', label: 'Nama', type: 'text', required: true, ph: 'Nama lu', body: true },
+            { key: 'email', label: 'Email', type: 'email', required: true, ph: 'nama@email.com', body: true },
+            { key: 'password', label: 'Password', type: 'password', required: true, ph: 'Minimal 8 karakter', body: true }
           ]
         },
         {
-          method: 'GET', path: '/api/download/facebook', name: 'Facebook',
-          desc: 'Tautan unduhan video Facebook publik (HD kalau tersedia). Video privat, reel yang butuh login, atau foto nggak didukung.',
-          auth: true,
+          method: 'POST', path: '/api/auth/login', name: 'Login Pengguna',
+          desc: 'Autentikasi kredensial dan dapatkan Bearer token.',
+          auth: 'public',
           fields: [
-            { name: 'url', in: 'query', label: 'url', value: 'https://www.facebook.com/facebook/videos/10153231379946729/', hint: 'URL video Facebook publik (facebook.com/.../videos/...).' }
-          ],
-          codes: [
-            ['200', 'array of media (video)'],
-            ['400', 'URL tidak valid'],
-            ['401', TOKEN_MSG],
-            ['502', 'video privat / bukan video / dihapus']
+            { key: 'email', label: 'Email', type: 'email', required: true, ph: 'nama@email.com', body: true },
+            { key: 'password', label: 'Password', type: 'password', required: true, ph: '••••••••', body: true }
           ]
         },
         {
-          method: 'GET', path: '/api/download/instagram', name: 'Instagram',
-          desc: 'Tautan unduhan post/reel Instagram publik (video + gambar, termasuk carousel). Rate-limit Instagram sering bikin endpoint ini gagal — coba lagi beberapa menit kalau kena.',
-          auth: true,
-          fields: [
-            { name: 'url', in: 'query', label: 'url', value: 'https://www.instagram.com/p/CxKvUxLI0zV/', hint: 'URL instagram.com/p/..., /reel/..., atau /tv/... publik.' }
-          ],
-          codes: [
-            ['200', 'array of media (video/gambar)'],
-            ['400', 'URL Instagram tidak dikenali'],
-            ['401', TOKEN_MSG],
-            ['502', 'rate-limit / login wajib — coba lagi nanti']
-          ]
+          method: 'GET', path: '/api/auth/me', name: 'Cek Sesi Login',
+          desc: 'Verifikasi Bearer token dan ambil profil akun yang sedang login (role dibaca fresh dari DB).',
+          auth: 'required',
+          fields: []
         }
       ]
     }
   ];
 
-  var TOTAL = CATALOG.reduce(function (n, c) { return n + c.endpoints.length; }, 0);
-  var METHOD_CLASS = { GET: 'method--get', POST: 'method--post', PUT: 'method--put', DELETE: 'method--del' };
+  var METHOD_LIST = ['ALL', 'GET', 'POST'];
+  var state = { method: 'ALL', category: 'ALL', ep: null };
 
-  var filter = 'all';
-  var query = '';
-  var cards = [];   // { ep, cat, root, ctx }
+  // ------------------------------------------------------------------
+  // util
+  // ------------------------------------------------------------------
+  function methodChip(m) {
+    return '<span class="method-chip method-chip--' + m.toLowerCase() + '">' + esc(m) + '</span>';
+  }
+  function q(sel) { return document.querySelector(sel); }
 
-  /* ------------------------------------------------------------------ *
-   * Bantu
-   * ------------------------------------------------------------------ */
-  function el(tag, cls, html) {
-    var n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (html !== undefined && html !== null) n.innerHTML = html;
-    return n;
+  function baseUrl() {
+    return window.location.origin;
   }
 
-  function autoEmail() {
-    return 'levi+' + Date.now() + '@contoh.com';
-  }
-
-  function seed(field) {
-    if (field.value === '@auto') return autoEmail();
-    return field.value || '';
-  }
-
-  function needsToken(ep) { return ep.auth === true; }
-
-  /* ------------------------------------------------------------------ *
-   * Bangun kartu per endpoint
-   * ------------------------------------------------------------------ */
-  function buildCard(ep, cat) {
-    var ctx = { ep: ep, inputs: {}, last: '' };
-
-    var root = el('article', 'ep');
-    ctx.root = root;
-    root.setAttribute('data-method', ep.method);
-    root.setAttribute('data-path', ep.path);
-
-    var hdr = el('button', 'ep__hdr');
-    hdr.type = 'button';
-    hdr.setAttribute('aria-expanded', 'false');
-
-    var meth = el('span', 'method ' + (METHOD_CLASS[ep.method] || 'method--get'), ep.method);
-    hdr.appendChild(meth);
-
-    var info = el('span', 'ep__info');
-    info.appendChild(el('span', 'ep__name', ep.name));
-    info.appendChild(el('span', 'ep__path', ep.path));
-    hdr.appendChild(info);
-
-    var tags = el('span', 'ep__tags');
-    tags.appendChild(el('span', 'tag' + (needsToken(ep) ? ' tag--auth' : ''), needsToken(ep) ? 'bearer' : 'publik'));
-    if (ep.writes) tags.appendChild(el('span', 'tag', 'tulis'));
-    hdr.appendChild(tags);
-
-    var chev = el('span', 'ep__chev', ICO.chev);
-    hdr.appendChild(chev);
-    root.appendChild(hdr);
-
-    var body = el('div', 'ep__body');
-    body.id = 'epb-' + cat.id + '-' + cards.length;
-    body.appendChild(el('p', 'ep__desc', ep.desc));
-
-    /* --- field --- */
-    if (ep.fields && ep.fields.length) {
-      var fields = el('div', 'ep__fields');
-      ep.fields.forEach(function (f) {
-        var wrap = el('div', 'ep__field');
-        var lab = el('label', null, f.label + (f.optional ? ' <span class="ep__opt">opsional</span>' : ''));
-        lab.setAttribute('for', 'f-' + cat.id + '-' + ep.path + '-' + f.name);
-        wrap.appendChild(lab);
-
-        var inp = el('input');
-        inp.type = f.type === 'password' ? 'password' : 'text';
-        inp.id = 'f-' + cat.id + '-' + ep.path + '-' + f.name;
-        inp.value = seed(f);
-        inp.spellcheck = false;
-        inp.autocomplete = 'off';
-        wrap.appendChild(inp);
-
-        if (f.hint) wrap.appendChild(el('p', 'ep__hint', f.hint));
-        fields.appendChild(wrap);
-
-        ctx.inputs[f.name] = inp;
-        inp.addEventListener('input', function () { refresh(ctx); });
+  // ------------------------------------------------------------------
+  // render katalog
+  // ------------------------------------------------------------------
+  function renderFilters() {
+    var mf = q('#methodFilter');
+    mf.innerHTML = METHOD_LIST.map(function (m) {
+      return '<button type="button" class="method-btn' + (state.method === m ? ' is-active' : '') + '" data-m="' + m + '">' + m + '</button>';
+    }).join('');
+    mf.querySelectorAll('.method-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        state.method = b.getAttribute('data-m');
+        renderFilters();
+        renderCatalog();
       });
-      body.appendChild(fields);
+    });
+
+    var cats = CATALOG.map(function (c) { return c.name; });
+    var cf = q('#categoryFilter');
+    cf.innerHTML = '<option value="ALL">All Categories</option>' +
+      cats.map(function (c) { return '<option value="' + esc(c) + '"' + (state.category === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+    cf.onchange = function () { state.category = cf.value; renderCatalog(); };
+  }
+
+  function totalEndpoints() {
+    return CATALOG.reduce(function (n, c) { return n + c.endpoints.length; }, 0);
+  }
+
+  function renderCatalog() {
+    var list = q('#catalogList');
+    var visible = CATALOG.filter(function (c) { return state.category === 'ALL' || c.name === state.category; });
+
+    list.innerHTML = visible.map(function (cat) {
+      var eps = cat.endpoints.filter(function (e) { return state.method === 'ALL' || e.method === state.method; });
+      if (eps.length === 0) return '';
+      var cards = eps.map(function (ep, i) {
+        return '<button type="button" class="ep-btn" data-cat="' + esc(cat.id) + '" data-i="' + cat.endpoints.indexOf(ep) + '">' +
+          '<span class="ep-btn__left">' + methodChip(ep.method) +
+            '<span style="min-width:0;flex:1">' +
+              '<span class="ep-btn__name"><b>' + esc(ep.name) + '</b>' +
+                '<code class="ep-btn__path mono">' + esc(ep.path) + '</code></span>' +
+              '<span class="ep-btn__desc" style="display:block">' + esc(ep.desc) + '</span>' +
+            '</span></span>' +
+          '<span class="ep-btn__arrow">' + L.icon('chevronRight', 'w-4 h-4') + '</span>' +
+        '</button>';
+      }).join('');
+
+      return '<div class="cat-card">' +
+        '<button type="button" class="cat-card__btn" aria-expanded="false">' +
+          '<span style="display:flex;align-items:center;gap:0.75rem;min-width:0">' +
+            '<span class="cat-card__icon" style="width:2rem;height:2rem">' + L.icon(cat.icon, 'w-4 h-4') + '</span>' +
+            '<span class="cat-card__meta">' +
+              '<span class="cat-card__title"><h2>' + esc(cat.name) + '</h2>' +
+                '<span class="cat-card__count">' + eps.length + ' endpoints</span></span>' +
+              '<span class="cat-card__desc" style="display:block">' + esc(cat.desc) + '</span>' +
+            '</span></span>' +
+          '<span class="cat-card__toggle">' + L.icon('plus', 'w-3.5 h-3.5') + '</span>' +
+        '</button>' +
+        '<div class="cat-card__body" hidden>' + cards + '</div>' +
+      '</div>';
+    }).join('');
+
+    q('#catalogTotal').textContent = 'Menampilkan ' + totalEndpoints() + ' endpoint dalam ' + CATALOG.length + ' kategori. Request dikirim beneran ke server — respons yang tampil apa adanya.';
+
+    // interaksi expand
+    list.querySelectorAll('.cat-card__btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var body = b.parentElement.querySelector('.cat-card__body');
+        var open = body.hidden;
+        body.hidden = !open;
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+        b.querySelector('.cat-card__toggle').innerHTML = L.icon(open ? 'minus' : 'plus', 'w-3.5 h-3.5');
+      });
+    });
+    list.querySelectorAll('.ep-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var catId = b.getAttribute('data-cat');
+        var i = parseInt(b.getAttribute('data-i'), 10);
+        var cat = CATALOG.find(function (c) { return c.id === catId; });
+        openDetail(cat.endpoints[i]);
+      });
+    });
+  }
+
+  // ------------------------------------------------------------------
+  // detail endpoint
+  // ------------------------------------------------------------------
+  function openDetail(ep) {
+    state.ep = ep;
+    q('#catalogView').hidden = true;
+    q('#detailView').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+
+    q('#dMethod').className = 'method-chip method-chip--' + ep.method.toLowerCase();
+    q('#dMethod').textContent = ep.method;
+    q('#dPath').textContent = ep.path;
+    q('#dName').textContent = ep.name;
+    q('#dDesc').textContent = ep.desc;
+
+    var authEl = q('#dAuth');
+    if (ep.auth === 'required') {
+      authEl.textContent = 'Bearer Auth';
+      q('#authNote').className = 'auth-note is-required';
+      q('#authNote').innerHTML = L.icon('lock', 'w-3.5 h-3.5') + '<span>Endpoint terproteksi — Bearer token dari session login lu dipakai otomatis. Belum login? <a href="/profile" style="color:var(--blue);font-weight:600">Sign in dulu</a>.</span>';
+    } else {
+      authEl.textContent = 'Public Endpoint';
+      q('#authNote').className = 'auth-note';
+      q('#authNote').innerHTML = L.icon('info', 'w-3.5 h-3.5') + '<span>Endpoint publik — dapat dieksekusi tanpa token autentikasi.</span>';
     }
 
-    /* --- bearer token (satu field, disinkronkan ke semua kartu) --- */
-    if (needsToken(ep)) {
-      var tw = el('div', 'ep__field');
-      var tl = el('label', null, 'bearer token');
-      tw.appendChild(tl);
-      var ti = el('input');
-      ti.type = 'text';
-      ti.className = 'ep__token';
-      ti.placeholder = 'eyJhbGciOi…';
-      ti.spellcheck = false;
-      ti.autocomplete = 'off';
-      ti.value = L.getToken() || '';
-      tw.appendChild(ti);
-      tw.appendChild(el('p', 'ep__hint',
-        'Belum punya? Pilih <code>POST /api/auth/register</code> di kategori Autentikasi — ' +
-        'token-nya langsung mengisi kolom ini begitu berhasil.'));
-      body.appendChild(tw);
-      ctx.token = ti;
-      ti.addEventListener('input', function () {
-        L.setToken(ti.value.trim(), false);
-        var all = document.querySelectorAll('.ep__token');
-        for (var i = 0; i < all.length; i++) { if (all[i] !== ti) all[i].value = ti.value; }
-        refreshAll();
-      });
-    }
+    renderFields(ep);
+    updatePreview();
+    resetResponse();
+  }
 
-    /* --- body JSON (dirakit dari field, bukan diketik manual) --- */
-    var hasBody = !!(ep.fields && ep.fields.some(function (f) { return f.in === 'body'; }));
+  function backToCatalog() {
+    q('#detailView').hidden = true;
+    q('#catalogView').hidden = false;
+    state.ep = null;
+  }
+
+  function renderFields(ep) {
+    var wrap = q('#fieldsWrap');
+    if (!ep.fields.length) {
+      wrap.innerHTML = '';
+      return;
+    }
+    var hasBody = ep.fields.some(function (f) { return f.body; });
+    var hasQuery = ep.fields.some(function (f) { return !f.body; });
+    var html = '';
     if (hasBody) {
-      var prev = el('div', 'ep__prev');
-      var pbar = el('div', 'ep__bar');
-      pbar.appendChild(el('span', 'ep__bar-label', 'Request body'));
-      pbar.appendChild(el('span', 'chips', '<span class="chip chip--muted">application/json</span>'));
-      prev.appendChild(pbar);
-      prev.appendChild(el('pre', null, '<code></code>'));
-      body.appendChild(prev);
-      ctx.prev = prev.querySelector('code');
+      html += '<div class="field-group-title" style="border-top:0;padding-top:0">Request Body (JSON)</div><div class="fields-grid">';
+      html += ep.fields.filter(function (f) { return f.body; }).map(fieldHtml).join('');
+      html += '</div>';
     }
-
-    /* --- aksi --- */
-    var actions = el('div', 'ep__actions');
-    var send = el('button', 'btn btn--primary btn--sm', ICO.send + '<span>Kirim</span>');
-    send.type = 'button';
-    var clr = el('button', 'btn btn--ghost btn--sm', ICO.x + '<span>Bersihkan</span>');
-    clr.type = 'button';
-    var flash = el('span', 'ep__flash');
-    actions.appendChild(send);
-    actions.appendChild(clr);
-    actions.appendChild(flash);
-    body.appendChild(actions);
-    ctx.flash = flash;
-
-    if (ep.writes) {
-      var warn = el('p', 'ep__warn', ICO.warn +
-        '<span>Endpoint ini <b>menulis</b> ke database production. Datanya nyata — ' +
-        'kalau bikin user buat coba-coba, hapus sendiri sesudahnya.</span>');
-      warn.hidden = true;
-      body.appendChild(warn);
-      ctx.warn = warn;
+    if (hasQuery) {
+      html += '<div class="field-group-title">Query Parameters</div><div class="fields-grid">';
+      html += ep.fields.filter(function (f) { return !f.body; }).map(fieldHtml).join('');
+      html += '</div>';
     }
+    wrap.innerHTML = html;
 
-    /* --- respons --- */
-    var resp = el('div', 'ep__resp');
-    var rbar = el('div', 'ep__bar');
-    rbar.appendChild(el('span', 'ep__bar-label', 'Response'));
-    var chips = el('span', 'chips');
-    var st = el('span', 'chip chip--muted', '—');
-    var tm = el('span', 'chip chip--muted', '—');
-    var sz = el('span', 'chip chip--muted', '—');
-    chips.appendChild(st); chips.appendChild(tm); chips.appendChild(sz);
-    rbar.appendChild(chips);
-    resp.appendChild(rbar);
-    resp.appendChild(el('pre', null, '<code>Belum ada request. Tekan “Kirim”.</code>'));
-    body.appendChild(resp);
-    ctx.status = st; ctx.time = tm; ctx.size = sz; ctx.out = resp.querySelector('code');
-    resp.querySelector('pre').id = 'out-' + cat.id + '-' + cards.length;
-
-    var rcopy = el('button', 'copy', ICO.copy + '<span>Salin</span>');
-    rcopy.type = 'button';
-    rbar.appendChild(rcopy);
-    rcopy.addEventListener('click', function () {
-      if (!ctx.last) { L.toast('Belum ada respons buat disalin'); return; }
-      L.copy(ctx.last, 'Respons tersalin');
+    wrap.querySelectorAll('input, select, textarea').forEach(function (el) {
+      el.addEventListener('input', updatePreview);
+      el.addEventListener('change', updatePreview);
     });
 
-    /* --- cURL --- */
-    var curl = el('div', 'ep__curl');
-    var cbar = el('div', 'ep__bar');
-    cbar.appendChild(el('span', 'ep__bar-label', 'cURL'));
-    var ccopy = el('button', 'copy', ICO.copy + '<span>Salin</span>');
-    ccopy.type = 'button';
-    cbar.appendChild(ccopy);
-    curl.appendChild(cbar);
-    curl.appendChild(el('pre', null, '<code></code>'));
-    body.appendChild(curl);
-    ctx.curl = curl.querySelector('code');
-    ccopy.addEventListener('click', function () {
-      L.copy(ctx.curl.textContent, 'Perintah cURL tersalin');
-    });
-
-    /* --- daftar status --- */
-    var codes = el('div', 'ep__codes');
-    codes.appendChild(el('div', 'ep__codes-hd', 'Status yang bisa dibalas endpoint ini'));
-    ep.codes.forEach(function (row) {
-      var ok = String(row[0]).charAt(0) === '2';
-      var r = el('div', 'ep__codes-row');
-      r.appendChild(el('span', 'cd ' + (ok ? 'cd--ok' : 'cd--err'), row[0]));
-      r.appendChild(el('span', 'msg', row[1]));
-      codes.appendChild(r);
-    });
-    body.appendChild(codes);
-
-    root.appendChild(body);
-
-    /* --- interaksi kartu --- */
-    hdr.setAttribute('aria-controls', body.id);
-    hdr.addEventListener('click', function () {
-      var open = !root.classList.contains('is-open');
-      root.classList.toggle('is-open', open);
-      hdr.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (open && ctx.warn) ctx.warn.hidden = false;
-      if (open) refresh(ctx);
-    });
-
-    send.addEventListener('click', function () { fire(ctx); });
-    clr.addEventListener('click', function () { reset(ctx); });
-
-    body.addEventListener('keydown', function (e) {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); fire(ctx); }
-    });
-
-    cards.push({ ep: ep, cat: cat, root: root, ctx: ctx });
-    return root;
+    function fieldHtml(f) {
+      var req = f.required ? '' : '<span class="opt">(Optional)</span>';
+      var inp;
+      if (f.type === 'select') {
+        inp = '<select class="field__select" id="f-' + f.key + '" data-key="' + f.key + '">' +
+          f.options.map(function (o) {
+            return '<option value="' + esc(o[0]) + '"' + (f.def === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+          }).join('') + '</select>';
+      } else {
+        inp = '<input id="f-' + f.key + '" data-key="' + f.key + '" type="' + f.type + '" placeholder="' + esc(f.ph || '') + '"' + (f.required ? ' required' : '') + '>';
+      }
+      return '<div class="field"><label for="f-' + f.key + '">' + esc(f.label) + req + '</label>' + inp +
+        (f.hint ? '<p class="field__hint">' + esc(f.hint) + '</p>' : '') + '</div>';
+    }
   }
 
-  /* ------------------------------------------------------------------ *
-   * Nilai yang dipakai request
-   * ------------------------------------------------------------------ */
-  function buildPath(ep, ctx) {
-    var p = ep.path;
-    var qs = [];
-    if (ep.fields) {
-      ep.fields.forEach(function (f) {
-        var v = ctx.inputs[f.name] ? ctx.inputs[f.name].value.trim() : '';
-        if (f.in === 'path') {
-          /* Kalau kosong, placeholder-nya DIBIARKAN. Dulu di sini diganti string
-             kosong, jadi /api/users/:id berubah jadi /api/users/ — path yang tetap
-             "valid" secara sintaks, penjagaan di fire() nggak kena, dan request
-             kosong itu beneran terkirim. Placeholder yang dibiarkan bikin cURL
-             langsung kelihatan mana yang belum diisi. */
-          if (v) p = p.replace(':' + f.name, encodeURIComponent(v));
-        } else if (f.in === 'query' && v) {
-          qs.push(encodeURIComponent(f.name) + '=' + encodeURIComponent(v));
-        }
-      });
-    }
-    if (qs.length) p += '?' + qs.join('&');
-    return p;
-  }
-
-  function missingPath(ep, ctx) {
-    if (!ep.fields) return [];
-    return ep.fields.filter(function (f) {
-      return f.in === 'path' && !(ctx.inputs[f.name] && ctx.inputs[f.name].value.trim());
-    });
-  }
-
-  function bodyJSON(ep, ctx) {
-    if (!ep.fields) return null;
-    var obj = {};
-    var any = false;
+  function collect(ep) {
+    var body = {}, query = {};
     ep.fields.forEach(function (f) {
-      if (f.in !== 'body') return;
-      any = true;
-      var v = ctx.inputs[f.name] ? ctx.inputs[f.name].value.trim() : '';
-      if (v === '' && f.optional) return;
-      obj[f.name] = v;
+      var el = q('#f-' + f.key);
+      if (!el) return;
+      var v = (el.value || '').trim();
+      if (!v) return;
+      if (f.body) body[f.key] = v; else query[f.key] = v;
     });
-    if (!any) return null;
-    return JSON.stringify(obj, null, 2);
+    return { body: body, query: query };
   }
 
-  function curlText(ep, ctx) {
-    var tok = ctx.token ? ctx.token.value.trim() : '';
-    var lines = ['curl -X ' + ep.method + ' "' + BASE + buildPath(ep, ctx) + '"'];
-    lines.push('-H "accept: application/json"');
-    if (needsToken(ep)) lines.push('-H "Authorization: Bearer ' + (tok || '<token>') + '"');
-    var b = bodyJSON(ep, ctx);
-    if (b) {
-      lines.push('-H "Content-Type: application/json"');
-      lines.push("-d '" + b.replace(/'/g, "'\\''") + "'");
+  function buildUrl(ep, query) {
+    var qs = Object.keys(query).map(function (k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(query[k]);
+    }).join('&');
+    return baseUrl() + ep.path + (qs ? '?' + qs : '');
+  }
+
+  function updatePreview() {
+    var ep = state.ep;
+    if (!ep) return;
+    var c = collect(ep);
+    var url = buildUrl(ep, c.query);
+    q('#pvMethod').className = 'request-preview__method' + (ep.method === 'GET' ? ' is-get' : '');
+    q('#pvMethod').textContent = ep.method;
+    q('#pvUrl').textContent = ep.method === 'GET' ? url : baseUrl() + ep.path;
+  }
+
+  function curlText(ep) {
+    var c = collect(ep);
+    var url = buildUrl(ep, c.query);
+    var parts = ['curl -X ' + ep.method + ' "' + url + '"'];
+    if (L.getToken()) parts.push('-H "Authorization: Bearer <token>"');
+    if (ep.method !== 'GET' && Object.keys(c.body).length) {
+      parts.push('-H "Content-Type: application/json"');
+      parts.push('-d \'' + JSON.stringify(c.body) + '\'');
     }
-    return lines.join(' \\\n  ');
+    return parts.join(' \\\n  ');
   }
 
-  /* ------------------------------------------------------------------ *
-   * Segarkan tampilan satu kartu
-   * ------------------------------------------------------------------ */
-  function refresh(ctx) {
-    if (ctx.prev) ctx.prev.textContent = bodyJSON(ctx.ep, ctx) || '';
-    if (ctx.curl) ctx.curl.textContent = curlText(ctx.ep, ctx);
+  // ------------------------------------------------------------------
+  // eksekusi
+  // ------------------------------------------------------------------
+  function resetResponse() {
+    q('#respEmpty').hidden = false;
+    q('#respBox').hidden = true;
+    q('#respTime').textContent = '';
   }
 
-  function refreshAll() {
-    cards.forEach(function (c) { refresh(c.ctx); });
-  }
+  function showResponse(status, data, ms, ep) {
+    q('#respEmpty').hidden = true;
+    q('#respBox').hidden = false;
+    q('#respTime').textContent = ms + ' ms';
 
-  function reset(ctx) {
-    var ep = ctx.ep;
-    if (ep.fields) {
-      ep.fields.forEach(function (f) {
-        if (ctx.inputs[f.name]) ctx.inputs[f.name].value = seed(f);
-      });
-    }
-    setStatus(ctx, '—', 'muted');
-    ctx.time.textContent = '—';
-    ctx.size.textContent = '—';
-    ctx.out.textContent = 'Belum ada request. Tekan “Kirim”.';
-    ctx.last = '';
-    flash(ctx, '');
-    refresh(ctx);
-  }
+    var st = q('#respStatus');
+    st.className = 'resp-box__status ' + (status >= 200 && status < 300 ? 'is-ok' : 'is-err');
+    st.textContent = 'HTTP ' + status;
+    q('#respMeta').textContent = ep ? ep.path : '';
 
-  function setStatus(ctx, text, kind) {
-    ctx.status.className = 'chip chip--' + kind;
-    ctx.status.textContent = text;
-  }
-
-  function flash(ctx, msg, isErr) {
-    ctx.flash.textContent = msg || '';
-    ctx.flash.className = 'ep__flash' + (isErr ? ' is-err' : '');
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Kirim request
-   * ------------------------------------------------------------------ */
-  function fire(ctx) {
-    var ep = ctx.ep;
-
-    var kurang = missingPath(ep, ctx);
-    if (kurang.length) {
-      var nama = kurang.map(function (f) { return f.name; }).join(' dan ');
-      flash(ctx, 'Isi dulu ' + nama + ' di path-nya', true);
-      if (ctx.inputs[kurang[0].name]) ctx.inputs[kurang[0].name].focus();
-      return;
+    // media links (respons downloader)
+    var media = q('#respMedia');
+    if (data && Array.isArray(data.media) && data.media.length) {
+      media.hidden = false;
+      media.innerHTML = data.media.map(function (m) {
+        var u = typeof m === 'string' ? m : (m.url || '');
+        var label = (m && (m.label || m.type || m.quality)) || 'media';
+        if (!u) return '';
+        return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(label) + ' — ' + esc(u.length > 90 ? u.slice(0, 90) + '…' : u) + '</a>';
+      }).join('');
+    } else {
+      media.hidden = true;
+      media.innerHTML = '';
     }
 
-    var path = buildPath(ep, ctx);
+    q('#respBody').textContent = JSON.stringify(data, null, 2);
+  }
 
-    if (path.indexOf(':') >= 0) {
-      flash(ctx, 'Isi dulu parameter di path-nya', true);
-      return;
-    }
+  function execute(ev) {
+    ev.preventDefault();
+    var ep = state.ep;
+    if (!ep) return;
+    var c = collect(ep);
 
-    var opts = { method: ep.method };
-
-    if (needsToken(ep)) {
-      var tok = ctx.token.value.trim();
-      if (!tok) {
-        flash(ctx, 'Endpoint ini butuh bearer token', true);
-        ctx.token.focus();
+    // validasi required di sisi UI
+    for (var i = 0; i < ep.fields.length; i++) {
+      var f = ep.fields[i];
+      if (f.required && !c.body[f.key] && !c.query[f.key]) {
+        L.toast('Field "' + f.label + '" wajib diisi', 'error');
         return;
       }
-      opts.token = tok;
     }
 
-    var body = bodyJSON(ep, ctx);
-    if (body) opts.body = body;
+    if (ep.auth === 'required' && !L.getToken()) {
+      L.toast('Endpoint ini butuh login dulu — token nggak ada.', 'error');
+      return;
+    }
 
-    var btn = ctx.root.querySelector('.btn--primary');
+    var btn = q('#btnExec');
     btn.disabled = true;
-    flash(ctx, 'Mengirim…');
-    setStatus(ctx, '…', 'muted');
-    ctx.time.textContent = '—';
-    ctx.size.textContent = '—';
+    var t0 = performance.now();
 
-    /* Semua jalur — termasuk galat yang nggak ketangkep — harus tetap
-       mengembalikan tombolnya. Kalau enggak, satu error bikin kartu itu
-       mati diam-diam dan pengguna nggak tahu kenapa. */
-    function done() { btn.disabled = false; }
-
-    try {
-      L.api(path, opts)
-        .then(function (r) {
-          ctx.time.textContent = r.ms + ' ms';
-          ctx.size.textContent = r.raw ? r.raw.length + ' B' : '0 B';
-          setStatus(ctx, r.status + (r.statusText ? ' ' + r.statusText : ''), r.ok ? 'ok' : 'err');
-
-          var pretty = r.isJson ? JSON.stringify(r.data, null, 2) : r.raw;
-          pretty = pretty || '(body kosong)';
-          ctx.out.textContent = pretty;
-          ctx.last = pretty;
-
-          if (r.ok) {
-            flash(ctx, 'Selesai dalam ' + r.ms + ' ms');
-          } else if (r.status === 401) {
-            flash(ctx, 'Ditolak — cek bearer token-nya', true);
-          } else {
-            flash(ctx, 'Dibalas ' + r.status, true);
-          }
-
-          /* register / login sukses -> token-nya langsung dipakai */
-          if (r.ok && ep.path.indexOf('/api/auth/') === 0 && r.data && r.data.token) {
-            var all = document.querySelectorAll('.ep__token');
-            for (var i = 0; i < all.length; i++) all[i].value = r.data.token;
-            L.setToken(r.data.token, false);
-            L.toast('Token tersimpan — kolom bearer di kartu lain ikut terisi');
-            refreshAll();
-          }
-        })
-        .catch(function (err) {
-          ctx.time.textContent = '—';
-          setStatus(ctx, 'gagal', 'err');
-          ctx.out.textContent = 'Request nggak sampai: ' + err.message;
-          ctx.last = '';
-          flash(ctx, 'Gagal terhubung', true);
-        })
-        .then(done, done);
-    } catch (err) {
-      ctx.out.textContent = 'Halaman ini gagal menyusun request: ' + err.message;
-      flash(ctx, 'Gagal menyusun request', true);
-      done();
-    }
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Render halaman
-   * ------------------------------------------------------------------ */
-  function renderNav() {
-    var nav = L.$('exNav');
-    if (!nav) return;
-
-    function item(id, name, count) {
-      var b = el('button', 'ex__nav-item' + (filter === id ? ' is-active' : ''));
-      b.type = 'button';
-      b.appendChild(el('span', 'ex__dot'));
-      b.appendChild(el('span', 'ex__nav-name', name));
-      b.appendChild(el('span', 'ex__nav-cnt', String(count)));
-      b.addEventListener('click', function () {
-        filter = id;
-        renderNav();
-        apply();
-      });
-      return b;
+    var opts = { method: ep.method, headers: { accept: 'application/json' } };
+    var tok = L.getToken();
+    if (tok) opts.headers.authorization = 'Bearer ' + tok;
+    if (ep.method !== 'GET') {
+      opts.headers['content-type'] = 'application/json';
+      opts.body = JSON.stringify(c.body);
     }
 
-    nav.innerHTML = '';
-    nav.appendChild(item('all', 'Semua endpoint', TOTAL));
-    CATALOG.forEach(function (c) {
-      nav.appendChild(item(c.id, c.name, c.endpoints.length));
-    });
+    fetch(buildUrl(ep, c.query), opts)
+      .then(function (res) {
+        return res.text().then(function (txt) {
+          var data = null;
+          try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = { raw: txt }; }
+          showResponse(res.status, data, Math.round(performance.now() - t0), ep);
+          if (!res.ok) L.toast('Request selesai dengan status ' + res.status, res.status >= 500 ? 'error' : '');
+        });
+      })
+      .catch(function (err) {
+        showResponse(0, { ok: false, message: String(err && err.message || err) }, Math.round(performance.now() - t0), ep);
+        L.toast('Request gagal: jaringan/server nggak bisa dihubungi', 'error');
+      })
+      .finally(function () { btn.disabled = false; });
   }
 
-  function renderFolders() {
-    var main = L.$('exFolders');
-    if (!main) return;
-    main.innerHTML = '';
-
-    CATALOG.forEach(function (cat, ci) {
-      var folder = el('section', 'folder');
-      folder.setAttribute('data-cat', cat.id);
-      folder.id = 'cat-' + cat.id;
-
-      var hdr = el('button', 'folder__hdr');
-      hdr.type = 'button';
-      hdr.setAttribute('aria-expanded', 'true');
-      hdr.setAttribute('aria-controls', 'catbody-' + cat.id);
-      hdr.appendChild(el('span', 'folder__icon', ICO[cat.icon] || ICO.eye));
-
-      var title = el('span', 'folder__title');
-      title.appendChild(el('span', 'folder__name', cat.name));
-      title.appendChild(el('span', 'folder__sub', cat.desc));
-      hdr.appendChild(title);
-
-      var meta = el('span', 'folder__meta');
-      meta.appendChild(el('span', 'folder__cnt', cat.endpoints.length + ' endpoint'));
-      var chev = el('span', 'folder__chev', ICO.down);
-      meta.appendChild(chev);
-      hdr.appendChild(meta);
-      folder.appendChild(hdr);
-
-      var fbody = el('div', 'folder__body');
-      fbody.id = 'catbody-' + cat.id;
-      cat.endpoints.forEach(function (ep) {
-        fbody.appendChild(buildCard(ep, cat));
-      });
-      folder.appendChild(fbody);
-
-      hdr.addEventListener('click', function () {
-        var closed = folder.classList.toggle('is-closed');
-        hdr.setAttribute('aria-expanded', closed ? 'false' : 'true');
-      });
-
-      main.appendChild(folder);
-    });
-
-    /* buka satu kartu pertama biar halaman nggak terlihat kosong */
-    if (cards.length) {
-      var first = cards[0];
-      first.root.classList.add('is-open');
-      first.root.querySelector('.ep__hdr').setAttribute('aria-expanded', 'true');
-      if (first.ctx.warn) first.ctx.warn.hidden = false;
-      refresh(first.ctx);
-    }
-  }
-
-  function matches(entry, q) {
-    if (!q) return true;
-    var ep = entry.ep;
-    var hay = (ep.method + ' ' + ep.path + ' ' + ep.name + ' ' + ep.desc + ' ' +
-               entry.cat.name + ' ' + entry.cat.id).toLowerCase();
-    return hay.indexOf(q) >= 0;
-  }
-
-  function apply() {
-    var q = query.trim().toLowerCase();
-    var shown = 0;
-
-    CATALOG.forEach(function (cat) {
-      var folder = document.querySelector('.folder[data-cat="' + cat.id + '"]');
-      if (!folder) return;
-
-      var inFilter = (filter === 'all' || filter === cat.id);
-      var visible = 0;
-
-      cards.forEach(function (entry) {
-        if (entry.cat.id !== cat.id) return;
-        var ok = inFilter && matches(entry, q);
-        entry.root.hidden = !ok;
-        if (ok) visible++;
-      });
-
-      folder.hidden = visible === 0;
-      if (visible > 0 && q) folder.classList.remove('is-closed');
-      var cnt = folder.querySelector('.folder__cnt');
-      if (cnt) {
-        cnt.textContent = (q && visible !== cat.endpoints.length)
-          ? visible + ' dari ' + cat.endpoints.length + ' endpoint'
-          : cat.endpoints.length + ' endpoint';
-      }
-      shown += visible;
-    });
-
-    var info = L.$('exCount');
-    if (info) {
-      if (q) {
-        info.innerHTML = 'Cari <b>' + q.replace(/[<>&]/g, '') + '</b> — <b>' + shown +
-          '</b> dari <b>' + TOTAL + '</b> endpoint cocok.';
-      } else if (filter !== 'all') {
-        var c = CATALOG.filter(function (x) { return x.id === filter; })[0];
-        info.innerHTML = 'Kategori <b>' + c.name + '</b> — <b>' + shown + '</b> endpoint. ' +
-          'Tekan <b>Semua endpoint</b> buat lihat semuanya.';
+  // ------------------------------------------------------------------
+  // boot
+  // ------------------------------------------------------------------
+  document.addEventListener('DOMContentLoaded', function () {
+    renderFilters();
+    renderCatalog();
+    q('#btnBack').addEventListener('click', backToCatalog);
+    q('#reqForm').addEventListener('submit', execute);
+    q('#btnCopy').addEventListener('click', function () {
+      var txt = curlText(state.ep || { method: 'GET', path: '', fields: [] });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () { L.toast('cURL disalin ke clipboard', 'ok'); });
       } else {
-        info.innerHTML = 'Menampilkan <b>' + TOTAL + '</b> endpoint dalam <b>' + CATALOG.length +
-          '</b> kategori. Semua respons di bawah ini asli.';
+        L.toast('Clipboard nggak tersedia di browser ini', 'error');
       }
-    }
-
-    var empty = L.$('exEmpty');
-    if (empty) empty.hidden = shown !== 0;
-  }
-
-  /* ------------------------------------------------------------------ *
-   * Mulai
-   * ------------------------------------------------------------------ */
-  function init() {
-    if (!L.$('exFolders')) return;
-
-    var base = L.$('exBase');
-    if (base) base.textContent = BASE;
-
-    renderFolders();
-    renderNav();
-    apply();
-    refreshAll();
-
-    var search = L.$('exSearch');
-    if (search) {
-      search.addEventListener('input', function () {
-        query = this.value;
-        apply();
-      });
-      search.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { this.value = ''; query = ''; apply(); }
-      });
-    }
-  }
-
-  init();
+    });
+  });
 })();

@@ -71,6 +71,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/download', downloadRoutes);
 
+
+// Health check — status nyata (DB di-ping beneran, nggak hardcode ok)
+app.get('/api/health', async (req, res) => {
+  try {
+    const db = require('./lib/db');
+    await db.query('select 1');
+    return res.json({ status: 'ok', database: 'connected', uptime: process.uptime() });
+  } catch (err) {
+    return res.status(503).json({ status: 'degraded', database: 'down', message: err.message });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

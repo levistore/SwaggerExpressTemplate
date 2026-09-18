@@ -3,311 +3,227 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lcode Api — API manajemen user dengan auth JWT</title>
-<meta name="description" content="API manajemen user dengan autentikasi JWT. Delapan endpoint, dokumentasi interaktif, dan playground di browser.">
-<meta name="theme-color" content="#050505">
-<meta property="og:title" content="Lcode Api — API manajemen user dengan auth JWT">
-<meta property="og:description" content="API manajemen user dengan autentikasi JWT. Delapan endpoint, dokumentasi interaktif, dan playground di browser.">
-<meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Cpath d='M9 22V10h3.4v9.2H23V22H9Z' fill='%23CCFF00'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Lcode Api — Production REST API Platform</title>
+<meta name="description" content="Lcode Api: REST API backend gratis dengan autentikasi JWT, PostgreSQL, RBAC, katalog downloader media, dan dokumentasi OpenAPI lengkap.">
+<link rel="icon" type="image/png" href="/maskot.png">
 <link rel="stylesheet" href="/styles.css">
-<script>document.documentElement.className += ' js';</script>
 </head>
 <body>
+<header class="site-header" id="siteHeader"></header>
 
-<!-- lapisan ambience: gradien bergerak pelan, di belakang semua konten -->
-<div class="ambient" aria-hidden="true">
-  <span class="ambient__blob ambient__blob--a"></span>
-  <span class="ambient__blob ambient__blob--b"></span>
-  <span class="ambient__grid"></span>
-</div>
-
-<a class="skip" href="#main">Lompat ke konten</a>
-
-<header class="nav" id="nav">
-  <div class="wrap nav__inner">
-    <a class="brand" href="/" aria-label="Lcode Api, ke beranda">
-      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
-      <span class="brand__text">Lcode <span class="brand__thin">Api</span></span>
-    </a>
-
-    <nav class="nav__links" aria-label="Navigasi utama">
-        <a href="/" aria-current="page">Home</a>
-        <a href="/docs">API Docs</a>
-        <a href="/explore">API Explore</a>
-        <a href="/pricing">Pricing</a>
-        <a href="/profile">Profile</a>
-    </nav>
-
-    <div class="nav__actions">
-      <a class="btn btn--ghost btn--sm" href="/api-docs">
-        <span>Swagger UI</span>
-        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navMobile" aria-label="Buka menu">
-        <span></span><span></span>
-      </button>
-    </div>
-  </div>
-
-  <div class="nav__mobile" id="navMobile" hidden>
-    <a href="/" aria-current="page">Home</a>
-    <a href="/docs">API Docs</a>
-    <a href="/explore">API Explore</a>
-    <a href="/pricing">Pricing</a>
-    <a href="/profile">Profile</a>
-  </div>
-</header>
-
-<main id="main">
-
-  <section class="hero" id="top">
-    <div class="wrap hero__grid">
-
-      <div class="hero__copy">
-        <p class="eyebrow" data-reveal>
-          <span class="eyebrow__dot" aria-hidden="true"></span>
-          For Developers
-        </p>
-
-        <h1 class="display" data-reveal data-delay="1">
-          <span class="mask"><span class="mask__in">Satu API.</span></span>
-          <span class="mask"><span class="mask__in"><em>Delapan</em> endpoint.</span></span>
-        </h1>
-
-        <p class="lede" data-reveal data-delay="2">
-          API manajemen user dengan autentikasi JWT. Register, login, kelola profil,
-          dan hapus akun — semuanya lewat satu base URL, dengan dokumentasi
-          interaktif dan playground yang jalan di browser.
-        </p>
-
-        <div class="cta-row" data-reveal data-delay="3">
-          <a class="btn btn--primary" href="/docs">
-            <span>Baca API Docs</span>
-            <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </a>
-          <a class="btn btn--outline" href="/explore">
-            <span>Coba di API Explore</span>
-          </a>
-        </div>
-
-        <p class="live" id="liveStatus" data-reveal data-delay="4">
-          <span class="live__dot" aria-hidden="true"></span>
-          <span id="liveText">Menghubungi API…</span>
-        </p>
-      </div>
-
-      <div class="hero__copy" data-reveal data-delay="2">
-        <div class="code-card">
-          <div class="code-card__bar">
-            <span class="code-card__label">
-              <span class="method method--get">GET</span>
-              <code>/api/users</code>
-            </span>
-            <span class="chips"><span class="chip chip--ok">200 OK</span></span>
+<main>
+  <!-- ======================= HERO ======================= -->
+  <section class="hero tech-grid-pattern">
+    <div class="wrap">
+      <div class="hero__grid">
+        <div class="hero__left">
+          <div class="hero__pill"><span class="dot dot--blue"></span>REST API INFRASTRUCTURE PLATFORM</div>
+          <h1 class="hero__title">Build faster with an API that is <span class="accent">fast, secure,</span> and production-ready.</h1>
+          <p class="hero__desc">Lcode Api menyediakan infrastruktur REST API dengan autentikasi JWT, persistensi PostgreSQL, role-based access control, katalog downloader media, dan dokumentasi OpenAPI yang lengkap.</p>
+          <div class="hero__cta">
+            <a href="/profile?mode=register"><button class="btn btn--primary-lg">Get Started Now <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button></a>
+            <a href="/docs"><button class="btn btn--outline-lg">View Documentation</button></a>
           </div>
-          <pre class="code"><code>[
-  {
-    "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com"
-  },
-  {
-    "id": 2,
-    "name": "Jane Doe",
-    "email": "jane@example.com"
+          <div class="hero__badges">
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-ok" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> REST API</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-ok" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> JWT Auth</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-ok" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> PostgreSQL</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-ok" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> OpenAPI 3.0</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-ok" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> RBAC</span>
+          </div>
+        </div>
+
+        <div class="hero__right">
+          <div class="code-window">
+            <div class="code-window__bar">
+              <div class="code-window__dots"><i></i><i></i><i></i><span class="code-window__title">POST /api/v1/auth/login</span></div>
+              <span class="chip chip--green" style="font-size:0.62rem">200 OK</span>
+            </div>
+            <div class="code-window__body">
+              <div class="cmt">// 1. Client Request</div>
+              <div><span class="kw">POST</span> /api/v1/auth/login</div>
+              <div class="cmt" style="padding-top:0.25rem">// 2. PostgreSQL + JWT Verified</div>
+              <div class="ok">HTTP/1.1 200 OK <span class="dim">(24ms)</span></div>
+<pre>{
+  "status": "success",
+  "data": {
+    "user": { "name": "developer", "role": "user" },
+    "tokens": {
+      "accessToken": "eyJhbG...",
+      "tokenType": "Bearer"
+    }
   }
-]</code></pre>
+}</pre>
+            </div>
+          </div>
+          <div class="pipeline">
+            <div class="pipeline__head"><span>Architecture Pipeline</span><span class="pipeline__live"><span class="dot dot--green"></span> Live Backend</span></div>
+            <div class="pipeline__grid">
+              <div class="pipeline__cell"><div class="pipeline__label">Client</div><div class="pipeline__value">Static Web</div></div>
+              <div class="pipeline__cell pipeline__cell--blue"><div class="pipeline__label">REST API</div><div class="pipeline__value">Express</div></div>
+              <div class="pipeline__cell"><div class="pipeline__label">Auth Guard</div><div class="pipeline__value">JWT + RBAC</div></div>
+              <div class="pipeline__cell pipeline__cell--green"><div class="pipeline__label">Database</div><div class="pipeline__value">PostgreSQL</div></div>
+            </div>
+          </div>
         </div>
       </div>
-
     </div>
   </section>
 
-  <section class="section section--alt" id="kapabilitas">
-    <div class="wrap">
-      <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Kapabilitas</p>
-        <h2 class="h2">Yang sudah jalan hari ini</h2>
-        <p class="section__sub">
-          Semua di bawah ini ada di API yang sedang lu lihat — bukan roadmap.
-        </p>
-      </header>
+  <!-- ======================= FEATURES ======================= -->
+  <section id="features" class="section section--soft">
+    <div class="wrap stack-6">
+      <div style="max-width:42rem">
+        <div class="section__eyebrow">Core Capabilities</div>
+        <h2 class="section__title">Engineered with Enterprise Standards</h2>
+        <p class="section__desc">Setiap module disusun dengan layering yang ketat, error code yang bersih, dan security guard tingkat produksi.</p>
+      </div>
+      <div class="features-grid">
+        <div class="card feature-card feature-card--7">
+          <div>
+            <div class="feature-card__icon feature-card__icon--blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </div>
+            <h3>Autentikasi JWT + Role-Based Access Control</h3>
+            <p>Tokenpendek dengan masa kedaluwarsa jelas, hash password scrypt, dan role <code class="inline mono">admin</code> / <code class="inline mono">user</code> yang divalidasi di middleware. Semua endpoint manajemen user terlindungi penuh.</p>
+          </div>
+          <div class="feature-card__terminal">
+            <div class="text-faint">// Protected route flow</div>
+            <div><span class="kw" style="color:var(--blue)">GET</span> /api/users</div>
+            <div class="ok">✓ requireAuth → verify Bearer token</div>
+            <div class="ok">✓ requireAdmin → role must be admin</div>
+          </div>
+        </div>
 
-      <div class="bento">
+        <div class="card feature-card feature-card--5">
+          <div>
+            <div class="feature-card__icon feature-card__icon--red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+            </div>
+            <h3>Downloader Media Multi-Platform</h3>
+            <p>Ekstrak tautan unduhan langsung dari konten publik TikTok, YouTube, Facebook, dan Instagram lewat satu endpoint terpadu — respons berisi media asli dari sumber, bukan data karangan.</p>
+          </div>
+          <div class="feature-card__chips">
+            <span class="chip chip--blue">TIKTOK</span>
+            <span class="chip chip--blue">YOUTUBE</span>
+            <span class="chip chip--blue">FACEBOOK</span>
+            <span class="chip chip--blue">INSTAGRAM</span>
+          </div>
+        </div>
 
-        <article class="card" data-reveal>
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6 13.4 3.7v4.4c0 3-2.3 5.3-5.4 6.3-3.1-1-5.4-3.3-5.4-6.3V3.7L8 1.6Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="m5.7 7.9 1.7 1.7 3-3.2" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <h3 class="card__title">Auth JWT dari hari pertama</h3>
-          <p class="card__text">
-            <code>register</code> dan <code>login</code> balikin token bertanda tangan
-            yang berlaku 7 hari. Endpoint tulis dilindungi middleware bearer.
-          </p>
-          <a class="card__link" href="/docs#auth">Lihat di referensi <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        </article>
+        <div class="card feature-card feature-card--4">
+          <div>
+            <div class="feature-card__icon feature-card__icon--gray">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+            </div>
+            <h3>PostgreSQL Persistence</h3>
+            <p>Akun, role, dan kredensial tersimpan di PostgreSQL dengan connection pooling. Kueri di-parameterisasi — nggak ada string SQL yang dirakit manual.</p>
+          </div>
+          <div class="feature-card__chips">
+            <span class="chip chip--gray">SSL</span>
+            <span class="chip chip--gray">PARAMETERIZED</span>
+            <span class="chip chip--green">SCRYPT</span>
+          </div>
+        </div>
 
-        <article class="card" data-reveal data-delay="1">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><ellipse cx="8" cy="4" rx="5.2" ry="2.2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M2.8 4v8c0 1.2 2.3 2.2 5.2 2.2s5.2-1 5.2-2.2V4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M2.8 8c0 1.2 2.3 2.2 5.2 2.2s5.2-1 5.2-2.2" stroke="currentColor" stroke-width="1.3" fill="none"/></svg></span>
-          <h3 class="card__title">Postgres sungguhan</h3>
-          <p class="card__text">
-            Data tersimpan di Postgres, bukan di memori. Password di-hash
-            scrypt dengan salt per user sebelum menyentuh tabel.
-          </p>
-          <a class="card__link" href="/explore">Uji sendiri <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        </article>
+        <div class="card feature-card feature-card--4">
+          <div>
+            <div class="feature-card__icon feature-card__icon--blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></svg>
+            </div>
+            <h3>OpenAPI 3.0 Documentation</h3>
+            <p>Spesifikasi lengkap dengan schema request/response per endpoint. Interaktif via Swagger UI — bisa dicoba langsung dari browser.</p>
+          </div>
+          <div class="feature-card__chips">
+            <span class="chip chip--blue">SWAGGER UI</span>
+            <span class="chip chip--gray">LIVE TRY-OUT</span>
+          </div>
+        </div>
 
-        <article class="card" data-reveal data-delay="2">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.6 2.6h4.1c.9 0 1.5.5 1.5 1.3v9.5c0-.7-.6-1.2-1.5-1.2H2.6V2.6Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M13.4 2.6H9.3c-.9 0-1.5.5-1.5 1.3v9.5c0-.7.6-1.2 1.5-1.2h4.1V2.6Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg></span>
-          <h3 class="card__title">Dokumentasi dua lapis</h3>
-          <p class="card__text">
-            Halaman referensi yang enak dibaca manusia, plus Swagger UI
-            dengan tombol <em>Try it out</em> untuk tiap endpoint.
-          </p>
-          <a class="card__link" href="/api-docs">Buka Swagger UI <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        </article>
-
-        <article class="card" data-reveal data-delay="3">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.8" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m4.6 6.4 1.8 1.8-1.8 1.8" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.4 10.2h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
-          <h3 class="card__title">Playground tanpa terminal</h3>
-          <p class="card__text">
-            Susun request, isi body, tekan Kirim. Responsnya datang dari API
-            yang sama, lengkap dengan status code dan waktu tempuh.
-          </p>
-          <a class="card__link" href="/explore">Buka API Explore <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        </article>
-
-        <article class="card card--wide" data-reveal data-delay="4">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.6 12.4h6.9a2.6 2.6 0 0 0 .3-5.2A3.9 3.9 0 0 0 4.3 6.6a2.9 2.9 0 0 0 .3 5.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg></span>
-          <h3 class="card__title">Serverless, tanpa VPS</h3>
-          <p class="card__text">
-            Jalan sebagai fungsi di Vercel dengan database Neon. Nggak ada
-            server yang perlu dijaga tetap hidup — dan nggak ada biaya tetap.
-          </p>
-        </article>
-
+        <div class="card feature-card feature-card--4">
+          <div>
+            <div class="feature-card__icon feature-card__icon--green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <h3>Interactive Playground</h3>
+            <p>Uji setiap endpoint langsung dari browser: isi parameter, kirim request nyata, lihat respons asli — plus cURL yang siap disalin.</p>
+          </div>
+          <div class="feature-card__chips">
+            <span class="chip chip--green">LIVE REQUEST</span>
+            <span class="chip chip--gray">cURL EXPORT</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="section" id="angka">
-    <div class="wrap">
-      <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Live</p>
-        <h2 class="h2">Angka yang diambil saat halaman ini dibuka</h2>
-        <p class="section__sub">
-          Nggak ada angka yang ditempel di kode. Dua dari tiga nilai di bawah
-          datang dari <code>GET /api/users</code> waktu halaman ini dimuat.
-        </p>
-      </header>
-
-      <ul class="stats" data-reveal data-delay="1">
-        <li class="stat">
-          <span class="stat__num">8</span>
-          <span class="stat__label">Endpoint aktif</span>
-        </li>
-        <li class="stat">
-          <span class="stat__num" id="statUsers">—</span>
-          <span class="stat__label">User tersimpan</span>
-        </li>
-        <li class="stat">
-          <span class="stat__num" id="statLatency">—</span>
-          <span class="stat__label">Waktu respons</span>
-        </li>
-        <li class="stat">
-          <span class="stat__num">7 hari</span>
-          <span class="stat__label">Masa berlaku token</span>
-        </li>
-      </ul>
-
-      <div class="bento" style="margin-top:var(--gap)">
-        <article class="card card--stat card--wide" data-reveal data-delay="2">
-          <span class="stat-big__label">User yang tersimpan sekarang</span>
-          <span class="stat-big" id="statBigUsers">—</span>
-          <span class="stat-big__hint">
-            Dihitung dari respons API barusan, bukan dari cache.
-          </span>
-        </article>
+  <!-- ======================= ARCHITECTURE ======================= -->
+  <section id="architecture" class="section">
+    <div class="wrap stack-6" style="gap:2rem">
+      <div style="max-width:42rem">
+        <div class="section__eyebrow">Architecture Overview</div>
+        <h2 class="section__title">Layered Domain Architecture</h2>
+        <p class="section__desc">Alur data yang predictable: routing HTTP terpisah dari validasi, business logic, dan akses database.</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-grid">
+          <div class="arch-cell"><div class="arch-cell__n">Layer 1</div><div class="arch-cell__name">Route</div><div class="arch-cell__sub">Express Router</div></div>
+          <div class="arch-cell arch-cell--blue"><div class="arch-cell__n">Layer 2</div><div class="arch-cell__name">Middleware</div><div class="arch-cell__sub">Auth / Role</div></div>
+          <div class="arch-cell"><div class="arch-cell__n">Layer 3</div><div class="arch-cell__name">Controller</div><div class="arch-cell__sub">Request / Response</div></div>
+          <div class="arch-cell"><div class="arch-cell__n">Layer 4</div><div class="arch-cell__name">Parser</div><div class="arch-cell__sub">Provider Logic</div></div>
+          <div class="arch-cell"><div class="arch-cell__n">Layer 5</div><div class="arch-cell__name">Repository</div><div class="arch-cell__sub">pg Pool Queries</div></div>
+          <div class="arch-cell arch-cell--green"><div class="arch-cell__n">Layer 6</div><div class="arch-cell__name">Database</div><div class="arch-cell__sub">PostgreSQL</div></div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="section section--alt" id="alur">
-    <div class="wrap">
-      <header class="section__head" data-reveal>
-        <p class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>Alur</p>
-        <h2 class="h2">Dari nol ke request terautentikasi</h2>
-      </header>
+  <!-- ======================= PRICING ======================= -->
+  <section id="pricing" class="section section--soft" style="border-bottom:0">
+    <div class="wrap stack-6" style="gap:2rem">
+      <div style="max-width:42rem">
+        <div class="section__eyebrow">Deployment &amp; Licensing</div>
+        <h2 class="section__title">Free &amp; Open Access</h2>
+        <p class="section__desc">Lcode Api bisa dipakai gratis via instance cloud publik, atau di-deploy sendiri dari source code.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="card price-card">
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <span class="chip chip--green">ACTIVE DEPLOYMENT</span>
+            <h3 style="font-size:1.125rem;font-weight:700;margin:0;color:var(--ink)">Public Cloud Instance</h3>
+            <p style="font-size:0.75rem;color:var(--muted);margin:0">Instance cloud yang sudah terhubung PostgreSQL. Langsung bisa diuji dan dipakai.</p>
+            <div class="price-card__price">Free / Open Access</div>
+            <ul class="price-card__list">
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Full Authentication &amp; RBAC</li>
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Live Interactive API Playground</li>
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Interactive API Documentation</li>
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Katalog Downloader Media</li>
+            </ul>
+          </div>
+          <a href="/profile?mode=register"><button class="btn btn--primary btn--block" style="padding:0.625rem">Create Free Account</button></a>
+        </div>
 
-      <div class="grid-2">
-        <article class="card" data-reveal>
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.6" r="2.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M3.2 13.4c.5-2.3 2.5-3.6 4.8-3.6s4.3 1.3 4.8 3.6" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg></span>
-          <h3 class="card__title">1 — Daftar</h3>
-          <p class="card__text">
-            Kirim <code>name</code>, <code>email</code>, dan password minimal
-            8 karakter ke <code>POST /api/auth/register</code>. Responsnya
-            sudah berisi token.
-          </p>
-        </article>
-
-        <article class="card" data-reveal data-delay="1">
-          <span class="card__icon"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M9 1.5 3.5 9H8l-1 5.5L12.5 7H8l1-5.5Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg></span>
-          <h3 class="card__title">2 — Pakai token</h3>
-          <p class="card__text">
-            Tempel token di header <code>Authorization: Bearer &lt;token&gt;</code> untuk
-            endpoint yang butuh. Halaman
-            <a href="/profile">Profile</a> nyimpen token-nya untuk lu.
-          </p>
-        </article>
+        <div class="card price-card">
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <span class="chip chip--blue">SELF-HOSTED</span>
+            <h3 style="font-size:1.125rem;font-weight:700;margin:0;color:var(--ink)">Docker &amp; Cloud Deploy</h3>
+            <p style="font-size:0.75rem;color:var(--muted);margin:0">Jalankan instance pribadi dengan database dan batas rate sendiri. Cocok untuk produksi internal.</p>
+            <div class="price-card__price">Open Source</div>
+            <ul class="price-card__list">
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> 100% Full Source Code</li>
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Custom Rate Limits</li>
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Admin Panel Lengkap</li>
+              <li><svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m16 9-5.5 5.5L8 12"/></svg> Database Sendiri</li>
+            </ul>
+          </div>
+          <a href="/docs"><button class="btn btn--outline btn--block" style="padding:0.625rem">View Documentation</button></a>
+        </div>
       </div>
     </div>
   </section>
-
-  <section class="closer">
-    <div class="wrap closer__inner" data-reveal>
-      <h2 class="h2 h2--tight">Mulai dari dokumentasinya.</h2>
-      <p class="section__sub">
-        Referensi lengkap delapan endpoint, atau langsung kirim request
-        sungguhan dari API Explore.
-      </p>
-      <div class="cta-row cta-row--center">
-        <a class="btn btn--primary" href="/docs">
-          <span>Buka API Docs</span>
-          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <a class="btn btn--outline" href="/explore"><span>Coba API Explore</span></a>
-      </div>
-    </div>
-  </section>
-
 </main>
 
-<footer class="foot">
-  <div class="wrap foot__inner">
-    <div class="foot__brand">
-      <span class="brand__mark brand__mark--sm"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
-      <span>Lcode Api</span>
-    </div>
-    <nav class="foot__links" aria-label="Navigasi footer">
-      <a href="/">Home</a>
-      <a href="/docs">API Docs</a>
-      <a href="/explore">API Explore</a>
-      <a href="/pricing">Pricing</a>
-      <a href="/profile">Profile</a>
-      <a href="/api-docs">Swagger UI</a>
-      <a href="/api/users">Status</a>
-    </nav>
-    <p class="foot__note">
-      Dibangun di atas Express, Postgres, dan Vercel. Font Inter &amp; JetBrains Mono.
-    </p>
-  </div>
-</footer>
-
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-
+<footer class="site-footer" id="siteFooter"></footer>
 <script src="/shell.js"></script>
-<script src="/home.js"></script>
 </body>
 </html>

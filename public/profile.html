@@ -3,395 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Profile — Lcode Api</title>
-<meta name="description" content="Masuk ke akun Lcode Api lu, lihat profil yang disimpan server, ubah nama dan email, atau hapus akun.">
-<meta name="theme-color" content="#050505">
-<meta property="og:title" content="Profile — Lcode Api">
-<meta property="og:description" content="Masuk ke akun Lcode Api lu, lihat profil yang disimpan server, ubah nama dan email, atau hapus akun.">
-<meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23050505'/%3E%3Cpath d='M9 22V10h3.4v9.2H23V22H9Z' fill='%23CCFF00'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Account &amp; Profile — Lcode Api</title>
+<meta name="description" content="Kelola akun developer lu: login, daftar akun baru, ubah profil, dan ganti password.">
+<link rel="icon" type="image/png" href="/maskot.png">
 <link rel="stylesheet" href="/styles.css">
-<script>document.documentElement.className += ' js';</script>
 </head>
 <body>
+<header class="site-header" id="siteHeader"></header>
 
-<!-- lapisan ambience: gradien bergerak pelan, di belakang semua konten -->
-<div class="ambient" aria-hidden="true">
-  <span class="ambient__blob ambient__blob--a"></span>
-  <span class="ambient__blob ambient__blob--b"></span>
-  <span class="ambient__grid"></span>
-</div>
+<main>
+  <!-- ============ LOGIN / REGISTER (belum login) ============ -->
+  <div id="authView" hidden>
+    <div class="wrap">
+      <div class="auth-wrap">
+        <div class="auth-card">
+          <h1 id="authTitle">Sign in to Lcode Api</h1>
+          <p class="auth-card__desc" id="authDesc">Akses playground, katalog downloader, dan kelola akun lu.</p>
 
-<a class="skip" href="#main">Lompat ke konten</a>
+          <!-- login -->
+          <form class="auth-card__form" id="loginForm" hidden>
+            <div class="field">
+              <label for="liEmail">Email<span class="opt">*wajib</span></label>
+              <input id="liEmail" type="email" placeholder="nama@email.com" required>
+            </div>
+            <div class="field">
+              <label for="liPassword">Password<span class="opt">*wajib</span></label>
+              <input id="liPassword" type="password" placeholder="••••••••" required>
+            </div>
+            <button class="btn btn--primary btn--block" style="padding:0.625rem" type="submit" id="btnLogin">Sign In to Account</button>
+          </form>
 
-<header class="nav" id="nav">
-  <div class="wrap nav__inner">
-    <a class="brand" href="/" aria-label="Lcode Api, ke beranda">
-      <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
-      <span class="brand__text">Lcode <span class="brand__thin">Api</span></span>
-    </a>
+          <!-- register -->
+          <form class="auth-card__form" id="registerForm" hidden>
+            <div class="field">
+              <label for="rgName">Nama<span class="opt">*wajib</span></label>
+              <input id="rgName" type="text" placeholder="Nama lu">
+            </div>
+            <div class="field">
+              <label for="rgEmail">Email Address<span class="opt">*wajib</span></label>
+              <input id="rgEmail" type="email" placeholder="nama@email.com">
+            </div>
+            <div class="field">
+              <label for="rgPassword">Password<span class="opt">*wajib</span></label>
+              <input id="rgPassword" type="password" placeholder="••••••••">
+              <ul class="pw-rules">
+                <li>Minimal 8 karakter</li>
+                <li>Ada huruf besar &amp; kecil</li>
+                <li>Ada angka (0-9)</li>
+              </ul>
+            </div>
+            <button class="btn btn--primary btn--block" style="padding:0.625rem" type="submit" id="btnRegister">Create Account</button>
+          </form>
 
-    <nav class="nav__links" aria-label="Navigasi utama">
-        <a href="/">Home</a>
-        <a href="/docs">API Docs</a>
-        <a href="/explore">API Explore</a>
-        <a href="/pricing">Pricing</a>
-        <a href="/profile" aria-current="page">Profile</a>
-    </nav>
-
-    <div class="nav__actions">
-      <a class="btn btn--ghost btn--sm" href="/api-docs">
-        <span>Swagger UI</span>
-        <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3h7v7" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 3 6.5 9.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M12 11.5V13H3V4h1.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-      <button class="nav__toggle" id="navToggle" aria-expanded="false" aria-controls="navMobile" aria-label="Buka menu">
-        <span></span><span></span>
-      </button>
+          <p class="auth-card__foot" id="authFoot">
+            Belum punya akun? <a href="#" id="footLink">Create developer account</a>
+          </p>
+          <div class="auth-card__note">Dilindungi autentikasi JWT &amp; role-based access control</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="nav__mobile" id="navMobile" hidden>
-    <a href="/">Home</a>
-    <a href="/docs">API Docs</a>
-    <a href="/explore">API Explore</a>
-    <a href="/pricing">Pricing</a>
-    <a href="/profile" aria-current="page">Profile</a>
+  <!-- ============ PROFIL (sudah login) ============ -->
+  <nav class="subnav" id="subnav" data-active="profile" hidden></nav>
+  <div id="profileView" hidden style="flex:1">
+    <div class="wrap page-pad" style="max-width:64rem">
+      <div class="stack-6">
+        <div class="page-head">
+          <div class="page-head__title">
+            <img class="page-head__logo" src="/maskot.png" alt="Lcode Api">
+            <div>
+              <h1>Account &amp; Profile</h1>
+              <p>Kelola detail akun developer, kredensial, dan akses lu.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-id">
+            <div class="profile-id__avatar" id="pAvatar">?</div>
+            <div>
+              <div class="profile-id__name" id="pName">—</div>
+              <div class="profile-id__email" id="pEmail">—</div>
+              <div style="margin-top:0.375rem"><span class="chip chip--gray" id="pRole">—</span></div>
+            </div>
+          </div>
+          <div class="profile-meta">
+            <div><div class="profile-meta__label">User ID</div><div class="profile-meta__value" id="pId">—</div></div>
+            <div><div class="profile-meta__label">Account Status</div><div class="profile-meta__value text-ok" id="pStatus">Active</div></div>
+          </div>
+        </div>
+
+        <div class="profile-forms">
+          <div class="profile-card">
+            <h2>Update Profil</h2>
+            <form id="updForm">
+              <div class="field">
+                <label for="ufName">Nama<span class="opt">*wajib</span></label>
+                <input id="ufName" type="text">
+              </div>
+              <div class="field">
+                <label for="ufEmail">Email Address<span class="opt">*wajib</span></label>
+                <input id="ufEmail" type="email">
+              </div>
+              <button class="btn btn--primary" style="align-self:flex-start;padding:0.5rem 1rem" type="submit" id="btnUpd">Save Changes</button>
+            </form>
+          </div>
+          <div class="profile-card">
+            <h2>Change Password</h2>
+            <form id="pwForm">
+              <div class="field">
+                <label for="pwCur">Current Password<span class="opt">*wajib</span></label>
+                <input id="pwCur" type="password" autocomplete="current-password">
+              </div>
+              <div class="field">
+                <label for="pwNew">New Password<span class="opt">*wajib</span></label>
+                <input id="pwNew" type="password" autocomplete="new-password">
+              </div>
+              <div class="field">
+                <label for="pwConf">Confirm New Password<span class="opt">*wajib</span></label>
+                <input id="pwConf" type="password" autocomplete="new-password">
+              </div>
+              <button class="btn btn--primary" style="align-self:flex-start;padding:0.5rem 1rem" type="submit" id="btnPw">Update Password</button>
+            </form>
+          </div>
+        </div>
+
+        <div style="padding-top:0.5rem">
+          <button class="btn btn--danger" id="btnLogout">Sign Out</button>
+        </div>
+      </div>
+    </div>
   </div>
-</header>
-
-<main id="main">
-
-  <section class="page-head">
-    <div class="wrap">
-      <p class="eyebrow" data-reveal><span class="eyebrow__dot" aria-hidden="true"></span>Akun</p>
-      <h1 class="display" data-reveal data-delay="1">Profile</h1>
-      <p class="lede" data-reveal data-delay="2">
-        Masuk pakai akun API ini, lalu lihat apa yang sebenarnya disimpan
-        tentang lu. Semua data di halaman ini datang dari
-        <code>GET /api/auth/me</code>.
-      </p>
-      <div class="meta-row" data-reveal data-delay="3">
-        <span class="meta">Token <b>JWT</b> · HS256</span>
-        <span class="meta">Disimpan di <b>browser lu</b></span>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" style="padding-top:0">
-    <div class="wrap">
-
-      <!-- ============ BELUM MASUK ============ -->
-      <div id="authView">
-        <div class="grid-2">
-
-          <div class="panel" data-reveal>
-            <div class="panel__head">
-              <h2 class="panel__title">Masuk atau daftar</h2>
-              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5.6" cy="10.4" r="3.1" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m7.9 8.1 5.5-5.5M11.6 4.4l1.5 1.5M13.4 2.6l1.4 1.4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
-            </div>
-            <div class="panel__body">
-
-              <div class="tabs" id="authTabs" role="tablist" aria-label="Pilih masuk atau daftar">
-                <button class="tab is-active" role="tab" aria-selected="true" data-auth-tab="login">Masuk</button>
-                <button class="tab" role="tab" aria-selected="false" data-auth-tab="register">Daftar</button>
-              </div>
-
-              <p class="note note--info" id="authErr" hidden></p>
-
-              <form id="loginForm" class="stack stack--sm" novalidate>
-                <div class="field">
-                  <label for="loginEmail">Email</label>
-                  <input id="loginEmail" type="email" autocomplete="email"
-                         placeholder="levi@contoh.com" spellcheck="false">
-                </div>
-                <div class="field">
-                  <label for="loginPassword">Password</label>
-                  <input id="loginPassword" type="password" autocomplete="current-password"
-                         placeholder="minimal 8 karakter">
-                </div>
-                <label class="check">
-                  <input id="loginRemember" type="checkbox">
-                  <span>Tetap masuk setelah tab ditutup</span>
-                </label>
-                <p class="field__hint" id="loginErr" hidden></p>
-                <div class="form-actions">
-                  <button class="btn btn--primary" id="loginSubmit" type="submit">
-                    <span>Masuk</span>
-                    <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                </div>
-              </form>
-
-              <form id="registerForm" class="stack stack--sm" novalidate hidden>
-                <div class="field">
-                  <label for="regName">Nama</label>
-                  <input id="regName" type="text" autocomplete="name" placeholder="Levi" spellcheck="false">
-                </div>
-                <div class="field">
-                  <label for="regEmail">Email</label>
-                  <input id="regEmail" type="email" autocomplete="email"
-                         placeholder="levi@contoh.com" spellcheck="false">
-                </div>
-                <div class="field">
-                  <label for="regPassword">Password</label>
-                  <input id="regPassword" type="password" autocomplete="new-password"
-                         placeholder="minimal 8 karakter">
-                  <p class="field__hint">Minimal <code>8</code> karakter — ini yang dicek API.</p>
-                </div>
-                <label class="check">
-                  <input id="regRemember" type="checkbox">
-                  <span>Tetap masuk setelah tab ditutup</span>
-                </label>
-                <p class="field__hint" id="registerErr" hidden></p>
-                <div class="form-actions">
-                  <button class="btn btn--primary" id="regSubmit" type="submit">
-                    <span>Buat akun</span>
-                    <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                </div>
-              </form>
-
-              <details class="reveal-more">
-                <summary>Punya token dari tempat lain? Tempel di sini</summary>
-                <div class="stack stack--sm">
-                  <div class="field">
-                    <label for="manualToken">Bearer token</label>
-                    <input id="manualToken" type="text" spellcheck="false" placeholder="eyJhbGciOi…">
-                  </div>
-                  <label class="check">
-                    <input id="manualRemember" type="checkbox">
-                    <span>Simpan sampai tab ditutup pun tetap ada</span>
-                  </label>
-                  <p class="field__hint" id="manualErr" hidden></p>
-                  <div class="form-actions">
-                    <button class="btn btn--outline btn--sm" id="manualApply" type="button">
-                      <span>Pakai token ini</span>
-                    </button>
-                  </div>
-                </div>
-              </details>
-
-            </div>
-          </div>
-
-          <div class="panel" data-reveal data-delay="1">
-            <div class="panel__head">
-              <h2 class="panel__title">Cara kerja halaman ini</h2>
-              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="3.2" y="7" width="9.6" height="6.6" rx="1.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5.6 7V5.2a2.4 2.4 0 0 1 4.8 0V7" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
-            </div>
-            <div class="panel__body">
-              <p class="doc__desc">
-                Halaman ini nggak punya database sendiri. Dia cuma menyimpan
-                token JWT di browser lu, lalu mengirimkannya ke API sebagai
-                header <code>Authorization: Bearer &lt;token&gt;</code>.
-              </p>
-              <div class="stack stack--sm">
-                <div class="note note--info">
-                  <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>
-                  <span>
-                    Token di <code>sessionStorage</code> hilang begitu tab
-                    ditutup. Centang <b>tetap masuk</b> kalau mau dipindah ke
-                    <code>localStorage</code>.
-                  </span>
-                </div>
-                <div class="note">
-                  <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8 15 14H1L8 1.8Z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/><path d="M8 6v3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".85" fill="currentColor"/></svg>
-                  <span>
-                    Siapa pun yang punya token ini bisa memakai akun lu sampai
-                    tokennya kedaluwarsa (7 hari). Jangan tempel di komputer
-                    bersama.
-                  </span>
-                </div>
-                <div class="note note--ok">
-                  <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8.5 3.2 3.2L13 5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  <span>
-                    Password lu <b>nggak pernah</b> dikirim balik oleh API, dan
-                    halaman ini nggak pernah menyimpannya.
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ============ SUDAH MASUK ============ -->
-      <div id="profileView" hidden>
-
-        <div class="panel" data-reveal>
-          <div class="panel__head">
-            <h2 class="panel__title">Akun yang sedang masuk</h2>
-            <button class="btn btn--outline btn--sm" id="logoutBtn" type="button">
-              <span>Keluar</span>
-            </button>
-          </div>
-          <div class="panel__body">
-
-            <div class="ident">
-              <span class="ident__avatar" id="identAvatar" aria-hidden="true">?</span>
-              <div>
-                <p class="ident__name" id="identName">—</p>
-                <p class="ident__mail" id="identMail">—</p>
-              </div>
-            </div>
-
-            <div class="kv">
-              <div class="kv__row">
-                <span class="kv__k">Id</span>
-                <span class="kv__v" id="kvId">—</span>
-              </div>
-              <div class="kv__row">
-                <span class="kv__k">Nama</span>
-                <span class="kv__v" id="kvName">—</span>
-              </div>
-              <div class="kv__row">
-                <span class="kv__k">Email</span>
-                <span class="kv__v" id="kvEmail">—</span>
-              </div>
-              <div class="kv__row">
-                <span class="kv__k">Token terbit</span>
-                <span class="kv__v" id="kvIssued">—</span>
-              </div>
-              <div class="kv__row">
-                <span class="kv__k">Token kedaluwarsa</span>
-                <span class="kv__v" id="kvExpires">—</span>
-              </div>
-              <div class="kv__row">
-                <span class="kv__k">Tersimpan di</span>
-                <span class="kv__v" id="kvStorage">—</span>
-              </div>
-              <div class="kv__row">
-                <span class="kv__k">Token aktif</span>
-                <span class="kv__v">
-                  <span class="token-box">
-                    <code id="tokenPeek">—</code>
-                    <button class="copy" type="button" data-copy-target="tokenPeek"
-                            data-copy-label="Token tersalin">
-                      <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.6" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M10.5 3.5v-1a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h1" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><span>Salin</span>
-                    </button>
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <p class="field__hint">
-              Info token di atas dibaca dari payload JWT-nya di browser, cuma
-              buat ditampilkan. Yang menentukan valid atau nggak tetap server.
-            </p>
-
-          </div>
-        </div>
-
-        <div class="grid-2" style="margin-top:var(--gap)">
-
-          <div class="panel" data-reveal>
-            <div class="panel__head">
-              <h2 class="panel__title">Ubah nama &amp; email</h2>
-              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.7" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="m2.6 4.6 5.4 4 5.4-4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <div class="panel__body">
-              <form id="editForm" class="stack stack--sm" novalidate>
-                <div class="field">
-                  <label for="editName">Nama</label>
-                  <input id="editName" type="text" spellcheck="false">
-                </div>
-                <div class="field">
-                  <label for="editEmail">Email</label>
-                  <input id="editEmail" type="email" spellcheck="false">
-                </div>
-                <div class="note note--info">
-                  <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>
-                  <span>
-                    API-nya <code>PUT</code>, bukan <code>PATCH</code>:
-                    dua-duanya wajib terisi. Ngubah satu doang bakal ditolak
-                    <code>400</code>.
-                  </span>
-                </div>
-                <p class="field__hint" id="editErr" hidden></p>
-                <div class="form-actions">
-                  <button class="btn btn--primary" id="editSubmit" type="submit">
-                    <span>Simpan perubahan</span>
-                    <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="m9 4.5 3.5 3.5L9 11.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <div class="panel panel--danger" data-reveal data-delay="1">
-            <div class="panel__head">
-              <h2 class="panel__title">Hapus akun</h2>
-              <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.8 4.4h10.4M6.2 4.4V3.1h3.6v1.3M4.2 4.4l.6 8.1a1.3 1.3 0 0 0 1.3 1.2h3.8a1.3 1.3 0 0 0 1.3-1.2l.6-8.1" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-            <div class="panel__body">
-              <p class="doc__desc">
-                Menghapus akun itu permanen. Nggak ada soft delete, nggak ada
-                undo, dan datanya langsung hilang dari database.
-              </p>
-              <form id="deleteForm" class="stack stack--sm" novalidate>
-                <div class="field">
-                  <label for="deleteConfirm">Ketik email akun lu buat konfirmasi</label>
-                  <input id="deleteConfirm" type="text" spellcheck="false"
-                         autocomplete="off" placeholder="levi@contoh.com">
-                  <p class="field__hint">
-                    Dipakai biar nggak kehapus gara-gara salah klik.
-                  </p>
-                </div>
-                <p class="field__hint" id="deleteErr" hidden></p>
-                <div class="form-actions">
-                  <button class="btn btn--outline" id="deleteSubmit" type="submit">
-                    <span>Hapus akun permanen</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="note note--info" style="margin-top:var(--gap)" data-reveal>
-          <svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.4" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>
-          <span>
-            Perlu token baru buat dipakai di tempat lain? Buka
-            <a href="/explore">API Explore</a>, pilih
-            <code>POST /api/auth/login</code>, lalu pakai email dan password lu.
-          </span>
-        </div>
-
-      </div>
-
-    </div>
-  </section>
-
 </main>
 
-<footer class="foot">
-  <div class="wrap foot__inner">
-    <div class="foot__brand">
-      <span class="brand__mark brand__mark--sm"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 19V5h3v11h11v3H5Z" fill="currentColor"/></svg></span>
-      <span>Lcode Api</span>
-    </div>
-    <nav class="foot__links" aria-label="Navigasi footer">
-      <a href="/">Home</a>
-      <a href="/docs">API Docs</a>
-      <a href="/explore">API Explore</a>
-      <a href="/pricing">Pricing</a>
-      <a href="/profile">Profile</a>
-      <a href="/api-docs">Swagger UI</a>
-      <a href="/api/users">Status</a>
-    </nav>
-    <p class="foot__note">
-      Dibangun di atas Express, Postgres, dan Vercel. Font Inter &amp; JetBrains Mono.
-    </p>
-  </div>
-</footer>
-
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-
+<footer class="site-footer" id="siteFooter"></footer>
 <script src="/shell.js"></script>
 <script src="/profile.js"></script>
 </body>
