@@ -10,7 +10,7 @@
 // Kalau sumber gagal, ok=false + message yang jujur — tidak ada data karangan.
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireScope } = require('../middleware/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { assertSafePublicUrl } = require('../lib/ssrf');
 
@@ -445,7 +445,7 @@ const downloadLimiter = rateLimit(20, { scope: 'download' });
  *       404: { description: Platform tidak dikenal }
  *       502: { description: Sumber pihak ketiga gagal atau media tidak tersedia }
  */
-router.get('/:platform', downloadLimiter, async (req, res, next) => {
+router.get('/:platform', downloadLimiter, requireScope('downloads:read'), async (req, res, next) => {
   const platform = (req.params.platform || '').toLowerCase();
   const url = (req.query.url || '').trim();
 

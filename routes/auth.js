@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireScope } = require('../middleware/auth');
 const { rateLimit } = require('../lib/ratelimit');
 const { cleanString, cleanEmail, cleanPassword, ValidationError } = require('../lib/validate');
 const sessions = require('../lib/sessions');
@@ -245,7 +245,7 @@ router.post('/login', async (req, res) => {
  *       404:
  *         description: User di token sudah nggak ada (akun dihapus)
  */
-router.get('/me', requireAuth, async (req, res) => {
+router.get('/me', requireAuth, requireScope('profile:read'), async (req, res) => {
   try {
     // Dibaca ulang dari DB, bukan cuma dari isi token — kalau user-nya
     // sudah dihapus, token lama nggak boleh tetap dianggap sah.
@@ -264,7 +264,7 @@ router.get('/me', requireAuth, async (req, res) => {
 // PUT /api/auth/me — user ubah profil sendiri (nama/email) atau ganti password.
 // Kalau body bawa currentPassword + password → ganti password (verifikasi dulu).
 // ---------------------------------------------------------------------------
-router.put('/me', requireAuth, async (req, res) => {
+router.put('/me', requireAuth, requireScope('profile:write'), async (req, res) => {
   try {
     const { name, email, currentPassword, password } = req.body || {};
     const { rows } = await db.query(

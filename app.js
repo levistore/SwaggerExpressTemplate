@@ -82,11 +82,13 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOpti
 const usersRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
 const downloadRoutes = require('./routes/download');
+const keysRoutes = require('./routes/keys');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/download', downloadRoutes);
+app.use('/api/keys', keysRoutes);
 
 // Health check — status nyata (DB di-ping beneran, nggak hardcode ok)
 app.get('/api/health', async (req, res) => {
