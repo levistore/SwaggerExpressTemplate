@@ -37,7 +37,16 @@ const UNIQUE_VIOLATION = '23505';
  *       bearerFormat: JWT
  *       description: |
  *         Kirim token dari /api/auth/login atau /api/auth/register:
- *         `Authorization: Bearer <token>`
+ *         `Authorization: Bearer <jwt>`. JWT punya akses penuh dalam batas role.
+ *     apiKeyAuth:
+ *       type: http
+ *       scheme: bearer
+ *       description: |
+ *         API key (format `lcode_live_...`, buat via POST /api/keys):
+ *         `Authorization: Bearer lcode_live_...`. Hanya endpoint dengan scope
+ *         yang cocok (downloads:read, profile:read, profile:write). Endpoint
+ *         admin SELALU menolak API key. Quota default per key: 60/menit,
+ *         1000/hari (header X-Quota-Daily-Limit / X-Quota-Daily-Remaining).
  *   schemas:
  *     AuthResponse:
  *       type: object
@@ -362,6 +371,63 @@ router.put('/me', requireAuth, requireScope('profile:write'), async (req, res) =
 // POST /api/auth/refresh — tukar refresh token dgn access token baru.
 // Refresh token diputar di tiap pemakaian; reuse → seluruh family direvoke.
 // ---------------------------------------------------------------------------
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     summary: Tukar refresh token dengan access token baru (rotasi — token lama mati)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken: { type: string }
+ *     responses:
+ *       200: { description: Access token + refresh token baru }
+ *       401: { description: Refresh token tidak valid / sudah dipakai (reuse → family revoked) }
+ * /api/auth/logout:
+ *   post:
+ *     summary: Revoke satu session via refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken: { type: string }
+ *     responses:
+ *       200: { description: Logout berhasil }
+ * /api/auth/logout-all:
+ *   post:
+ *     summary: Revoke SEMUA session user (butuh Bearer JWT)
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Semua session revoked }
+ * /api/auth/sessions:
+ *   get:
+ *     summary: Daftar session aktif milik user
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: Array session (tanpa refresh token hash) }
+ * /api/auth/sessions/{id}:
+ *   delete:
+ *     summary: Revoke satu session milik sendiri
+ *     tags: [Auth]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200: { description: Session revoked }
+ *       404: { description: Session tidak ditemukan / bukan milikmu }
+ */
 router.post('/refresh', async (req, res, next) => {
   const raw = req.body && req.body.refreshToken;
   if (typeof raw !== 'string' || raw.length < 20 || raw.length > 512) {

@@ -14,6 +14,27 @@ const router = express.Router();
 const db = require('../lib/db');
 const { cleanId } = require('../lib/validate');
 
+
+/**
+ * @swagger
+ * /api/users/audit-logs:
+ *   get:
+ *     summary: Audit trail (admin only) — pagination + filter action/actor/rentang tanggal
+ *     tags: [Admin]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: limit, schema: { type: integer, default: 50 } }
+ *       - { in: query, name: offset, schema: { type: integer, default: 0 } }
+ *       - { in: query, name: action, schema: { type: string }, description: Filter persis, mis. LOGIN_FAILED }
+ *       - { in: query, name: actor, schema: { type: integer }, description: actor_user_id }
+ *       - { in: query, name: from, schema: { type: string, format: date-time } }
+ *       - { in: query, name: to, schema: { type: string, format: date-time } }
+ *     responses:
+ *       200: { description: Daftar audit log (tanpa secret) }
+ *       401: { description: Token tidak valid }
+ *       403: { description: Bukan admin }
+ *       403x: { description: API key selalu ditolak di endpoint admin }
+ */
 router.get('/audit-logs', async (req, res) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
   const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);

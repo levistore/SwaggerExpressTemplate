@@ -28,6 +28,30 @@ app.use('/api', rateLimit(300, { scope: 'api' }));
 
 app.use(security.requestLogger);
 
+// ---------------------------------------------------------------------------
+// Usage tracking (Phase 3) — fire-and-forget, TIDAK menyimpan secret apa pun
+// (hanya metadata operasional: user/key id, route, status, durasi, request_id).
+// Gagal write analytics tidak pernah bikin request gagal (lib/usage.js).
+// ---------------------------------------------------------------------------
+const usage = require('./lib/usage');
+app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
+  res.on('finish', () => {
+    if (!req.originalUrl || !req.originalUrl.startsWith('/api')) return;
+    usage.record({
+      userId: req.user ? req.user.id : null,
+      apiKeyId: req.auth && req.auth.type === 'api_key' ? req.auth.keyId : null,
+      method: req.method,
+      route: req.originalUrl.split('?')[0],
+      status: res.statusCode,
+      durationMs: Math.round(Number(process.hrtime.bigint() - start) / 1e6),
+      platform: req.params && req.params.platform ? req.params.platform : null,
+      requestId: req.id,
+    });
+  });
+  next();
+});
+
 // Landing page statis (public/) — index.html dilayani di '/'
 // Nama file nggak di-hash, jadi jangan cache lama: cukup revalidate (ETag -> 304).
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -44,9 +68,16 @@ const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
     info: {
-      title: 'Express API with Swagger',
-      version: '1.0.0',
-      description: 'A simple Express API with Swagger documentation',
+      title: 'LCODE API',
+      version: '2.0.0',
+      description: [
+        'LCODE API — downloader multi-platform, auth (JWT + session + refresh token), API keys dengan scopes, quota, audit trail.',
+        '',
+        '**Versioning:** `/api/v1/...` adalah canonical API (respons envelope `{success, data|error, request_id}`). Path `/api/...` tanpa versi tetap bekerja sebagai compatibility layer dengan format respons legacy.',
+        '**Auth:** Bearer JWT **atau** API key `lcode_live_...` (scopes: downloads:read, profile:read, profile:write). Endpoint admin menolak API key.',
+        '**Rate limit:** global 300/m, auth 10/m, download 20/m, keys 30/m, admin 60/m → 429 + Retry-After. Quota per API key: 60/m & 1000/hari (default).',
+        '**Errors:** `{success:false, error:{code,message}, request_id}`. Semua respons membawa X-Request-ID.',
+      ].join('\n'),
       contact: {
         name: 'API Support',
         email: 'support@example.com'
@@ -76,6 +107,9 @@ const swaggerUiOptions = isVercelProduction ? {
   ]
 } : {};
 
+// Spec JSON untuk konsumsi programatis (Phase 3): /api/docs.json
+app.get('/api/docs.json', (req, res) => res.json(swaggerDocs));
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOptions));
 
 // Use routes
@@ -89,6 +123,18 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/download', downloadRoutes);
 app.use('/api/keys', keysRoutes);
+
+// ---------------------------------------------------------------------------
+// API versioning (Phase 3): /api/v1 = canonical API. Alias dari router yang
+// SAMA dengan legacy — behavior, auth, scopes, rate limit, audit, quota
+// identik; hanya format respons dibungkus envelope standar
+// {success, data|error, request_id}. Legacy tetap bekerja (compatibility layer).
+// ---------------------------------------------------------------------------
+const { envelopedRouter } = require('./lib/envelope');
+app.use('/api/v1/auth', envelopedRouter(authRoutes));
+app.use('/api/v1/users', envelopedRouter(usersRoutes));
+app.use('/api/v1/download', envelopedRouter(downloadRoutes));
+app.use('/api/v1/keys', envelopedRouter(keysRoutes));
 
 // Health check — status nyata (DB di-ping beneran, nggak hardcode ok)
 app.get('/api/health', async (req, res) => {

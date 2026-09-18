@@ -130,6 +130,44 @@ API ini sudah menerapkan hardening berikut (tanpa mengubah perilaku endpoint yan
 > (tidak ada blacklist; mitigasi: refresh token 7 hari bisa di-revoke
 > server-side, access token pendek umurninya).
 
+
+### API versioning & response envelope (Phase 3)
+
+- **`/api/v1/...` = canonical API.** Router yang sama dengan legacy, format
+  respons dibungkus envelope standar:
+
+  ```json
+  { "success": true,  "data": { ... }, "request_id": "req_..." }
+  { "success": false, "error": { "code": "...", "message": "..." }, "request_id": "req_..." }
+  ```
+
+- Path legacy `/api/...` tetap bekerja 100% (compatibility layer, format lama).
+- Spec OpenAPI programatis: `GET /api/docs.json` (Swagger UI tetap di `/api-docs`).
+
+### Usage tracking & quota per API key (Phase 3)
+
+- Setiap request `/api/*` dicatat di tabel `api_usage` (user/key id, route,
+  status, durasi, request_id) — **tanpa** header Authorization, token, key raw,
+  password, atau body. Retensi 30 hari. Write analytics fire-and-forget:
+  gagal tidak pernah mempengaruhi request utama.
+- Quota per API key (JWT tidak kena): default **60 req/menit** dan
+  **1000 req/hari** (reset tengah malam UTC). Override per key via kolom
+  `api_keys.rate_limit_per_min` / `api_keys.daily_quota` (migration 007).
+  Penolakan = 429 `QUOTA_EXCEEDED`. Header `X-Quota-Daily-Limit` /
+  `X-Quota-Daily-Remaining` di respons download via API key.
+
+### Downloader provider layer (Phase 3)
+
+Provider logic (TikTok/YouTube/Facebook/Instagram) diekstrak ke
+`lib/providers.js` — behavior identik, SSRF guard tetap di route, fallback dan
+normalisasi error tidak berubah.
+
+### Caching
+
+**SKIP** (keputusan Phase 3): URL media yang dikembalikan provider memakai
+token kedaluwarsa singkat, sehingga cache tidak aman dan memberi nilai kecil;
+data user tidak boleh di-cache. Tidak ada cache diterapkan.
+
 ### SSRF protection (`lib/ssrf.js`)
 
 `GET /api/download/:platform?url=` memvalidasi URL sebelum dipakai:
