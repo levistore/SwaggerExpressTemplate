@@ -216,6 +216,7 @@
     q('#btnAdd').addEventListener('click', function () { openModal(); });
     q('#mCancel').addEventListener('click', closeModal);
     q('#modalBack').addEventListener('click', function (ev) { if (ev.target === q('#modalBack')) closeModal(); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && !q('#modalBack').hidden) closeModal(); });
     q('#modalForm').addEventListener('submit', saveModal);
     q('#searchInput').addEventListener('input', renderUsers);
     q('#roleFilter').addEventListener('change', renderUsers);

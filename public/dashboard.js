@@ -313,6 +313,11 @@
     q('#nkForm').addEventListener('submit', createKey);
     q('#nkCancel').addEventListener('click', function () { q('#newKeyModal').hidden = true; setModalOpen(false); });
     q('#kmClose').addEventListener('click', closeKeyModal);
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      if (!q('#keyModal').hidden) closeKeyModal();
+      else if (!q('#newKeyModal').hidden) { q('#newKeyModal').hidden = true; setModalOpen(false); }
+    });
     q('#kmCopy').addEventListener('click', function () {
       var txt = q('#kmKey').textContent;
       if (navigator.clipboard) navigator.clipboard.writeText(txt).then(function () { L.toast('Key dicopy', 'ok'); });
