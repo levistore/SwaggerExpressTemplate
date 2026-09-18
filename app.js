@@ -64,10 +64,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOpti
 // Import routes
 const usersRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
+const downloadRoutes = require('./routes/download');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/download', downloadRoutes);
 
 // Start server
 app.listen(PORT, () => {
