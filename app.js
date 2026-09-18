@@ -3,13 +3,30 @@ const path = require('path');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
+const security = require('./lib/middleware');
+const { rateLimit } = require('./lib/ratelimit');
+
 // Initialize express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// ---------------------------------------------------------------------------
+// Middleware global — urutan penting:
+// request id -> headers -> cors -> body parse (dengan guard ukuran) -> log
+// ---------------------------------------------------------------------------
+app.disable('x-powered-by');
+app.use(security.requestId);
+app.use(security.securityHeaders);
+app.use(security.cors);
+app.use(security.bodyLimit);
+app.use(express.json({ limit: '16kb' }));
+app.use(express.urlencoded({ extended: false, limit: '16kb' }));
+
+// Penghalang global: 300 req/menit per IP untuk seluruh /api.
+// Endpoint sensitif dapat limit jauh lebih ketat di route-nya masing-masing.
+app.use('/api', rateLimit(300, { scope: 'api' }));
+
+app.use(security.requestLogger);
 
 // Landing page statis (public/) — index.html dilayani di '/'
 // Nama file nggak di-hash, jadi jangan cache lama: cukup revalidate (ETag -> 304).
@@ -61,7 +78,7 @@ const swaggerUiOptions = isVercelProduction ? {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, swaggerUiOptions));
 
-// Import routes
+// Use routes
 const usersRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
 const downloadRoutes = require('./routes/download');
@@ -70,7 +87,6 @@ const downloadRoutes = require('./routes/download');
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/download', downloadRoutes);
-
 
 // Health check — status nyata (DB di-ping beneran, nggak hardcode ok)
 app.get('/api/health', async (req, res) => {
@@ -82,6 +98,10 @@ app.get('/api/health', async (req, res) => {
     return res.status(503).json({ status: 'degraded', database: 'down', message: err.message });
   }
 });
+
+// 404 + error handler TERAKHIR (setelah semua route)
+app.use(security.notFoundHandler);
+app.use(security.errorHandler);
 
 // Start server
 app.listen(PORT, () => {

@@ -3,29 +3,21 @@ const router = express.Router();
 const db = require('../lib/db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { hashPassword, MIN_PASSWORD_LENGTH } = require('../lib/auth');
+const { rateLimit } = require('../lib/ratelimit');
+const { cleanString, cleanEmail, cleanId, ValidationError } = require('../lib/validate');
 
 // Semua endpoint di router ini butuh login DAN role admin.
 // Baca daftar email user itu data sensitif, nggak boleh publik.
 router.use(requireAuth, requireAdmin);
 
+// Admin juga dibatasi (defence in depth kalau token admin bocor):
+// 60 req/menit per IP untuk seluruh operasi manajemen user.
+router.use(rateLimit(60, { scope: 'admin' }));
+
 const COLUMNS = 'id, name, email, role';
 
 // Kode error Postgres untuk unique violation (email sudah dipakai).
 const UNIQUE_VIOLATION = '23505';
-
-// id di Postgres bertipe integer (int4). Angka di luar rentang ini bikin
-// Postgres error 500, padahal di versi in-memory dulu cuma "nggak ketemu" (404).
-const MAX_INT4 = 2147483647;
-
-/**
- * parseInt yang aman: balikin null kalau bukan integer yang masuk akal.
- * Perilaku lama dipertahankan — id non-numerik jadi 404, bukan 500.
- */
-function parseId(raw) {
-  const id = parseInt(raw, 10);
-  if (!Number.isInteger(id) || id < 1 || id > MAX_INT4) return null;
-  return id;
-}
 
 /**
  * @swagger
@@ -131,7 +123,7 @@ router.get('/', async (req, res) => {
  *         description: The user was not found
  */
 router.get('/:id', async (req, res) => {
-  const id = parseId(req.params.id);
+  const id = cleanId(req.params.id);
   if (id === null) {
     return res.status(404).json({ message: 'User not found' });
   }
@@ -181,25 +173,25 @@ router.get('/:id', async (req, res) => {
  *         description: Email sudah dipakai user lain
  */
 router.post('/', async (req, res) => {
-  const { name, email, password } = req.body || {};
+  const { password } = req.body || {};
 
-  // Di-trim dulu supaya sama persis dengan register. Login mencocokkan
-  // lower(email) = lower(trim(input)), jadi email berspasi nggak akan
-  // pernah ketemu kalau disimpan apa adanya.
-  const cleanName = typeof name === 'string' ? name.trim() : name;
-  const cleanEmail = typeof email === 'string' ? email.trim() : email;
-
-  if (!cleanName || !cleanEmail) {
-    return res.status(400).json({ message: 'Name and email are required' });
+  // Validasi server-side: hanya field yang dikenal, tipe & panjang dicek.
+  let cleanName, cleanEmailVal;
+  try {
+    cleanName = cleanString(req.body && req.body.name, { field: 'Name', max: 100 });
+    cleanEmailVal = cleanEmail(req.body && req.body.email);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      return res.status(400).json({ message: e.message });
+    }
+    throw e;
   }
 
-  // password OPSIONAL — inilah celah yang diperbaiki di sini. Sebelumnya
-  // endpoint ini bikin baris user tanpa password_hash, jadi akunnya muncul
-  // di daftar tapi nggak bisa login. Sekarang kalau password dikirim, dia
-  // divalidasi dan di-hash dengan aturan yang sama dengan /api/auth/register.
+  // password OPSIONAL — kalau diisi, divalidasi dan di-hash dengan aturan
+  // yang sama dengan /api/auth/register.
   let passwordHash = null;
   if (password !== undefined && password !== null) {
-    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH || password.length > 128) {
       return res.status(400).json({
         message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`,
       });
@@ -208,11 +200,10 @@ router.post('/', async (req, res) => {
   }
 
   try {
-    // id dari sequence Postgres, bukan users.length + 1 kayak sebelumnya —
-    // versi lama bikin id duplikat begitu ada user yang dihapus.
+    // id dari sequence Postgres — id duplikat nggak mungkin.
     const { rows } = await db.query(
       `insert into users (name, email, password_hash) values ($1, $2, $3) returning ${COLUMNS}`,
-      [cleanName, cleanEmail, passwordHash]
+      [cleanName, cleanEmailVal, passwordHash]
     );
 
     const user = rows[0];
@@ -267,14 +258,23 @@ router.post('/', async (req, res) => {
  *         description: Email sudah dipakai user lain
  */
 router.put('/:id', async (req, res) => {
-  const { name, email } = req.body;
+  const { name, email } = req.body || {};
 
   // Urutan cek dipertahankan seperti aslinya: body dulu (400), baru id (404).
-  if (!name || !email) {
-    return res.status(400).json({ message: 'Name and email are required' });
+  // Validasi server-side: tipe, format email, panjang — field nggak dikenal
+  // diabaikan (tidak pernah diteruskan ke SQL).
+  let cleanNameVal, cleanEmailVal;
+  try {
+    cleanNameVal = cleanString(name, { field: 'Name', max: 100 });
+    cleanEmailVal = cleanEmail(email);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      return res.status(400).json({ message: e.message });
+    }
+    throw e;
   }
 
-  const id = parseId(req.params.id);
+  const id = cleanId(req.params.id);
   if (id === null) {
     return res.status(404).json({ message: 'User not found' });
   }
@@ -284,7 +284,7 @@ router.put('/:id', async (req, res) => {
     // user dengan id itu, jadi nggak perlu query cek dulu.
     const { rows } = await db.query(
       `update users set name = $1, email = $2 where id = $3 returning ${COLUMNS}`,
-      [name, email, id]
+      [cleanNameVal, cleanEmailVal, id]
     );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
@@ -323,7 +323,7 @@ router.put('/:id', async (req, res) => {
  *         description: The user was not found
  */
 router.delete('/:id', async (req, res) => {
-  const id = parseId(req.params.id);
+  const id = cleanId(req.params.id);
   if (id === null) {
     return res.status(404).json({ message: 'User not found' });
   }

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
+const { rateLimit } = require('../lib/ratelimit');
+const { cleanString, cleanEmail, cleanPassword, ValidationError } = require('../lib/validate');
 const {
   hashPassword,
   verifyPassword,
@@ -11,6 +13,11 @@ const {
   MIN_PASSWORD_LENGTH,
   TOKEN_TTL,
 } = require('../lib/auth');
+
+// Rate limit ketat khusus auth — brute-force login & spam register.
+// Global limiter /api (300/menit) tetap jalan di atasnya.
+const authLimiter = rateLimit(10, { scope: 'auth' });
+router.use(authLimiter);
 
 const COLUMNS = 'id, name, email, role';
 
@@ -96,25 +103,26 @@ const UNIQUE_VIOLATION = '23505';
  *         description: Email sudah terdaftar
  */
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body || {};
+  const { password } = req.body || {};
 
-  if (!name || typeof name !== 'string' || name.trim() === '') {
-    return res.status(400).json({ message: 'Name is required' });
-  }
-  if (!isValidEmail(email)) {
-    return res.status(400).json({ message: 'Valid email is required' });
-  }
-  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
-    return res
-      .status(400)
-      .json({ message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+  // Validasi server-side penuh (frontend validation bukan security).
+  let name, email;
+  try {
+    name = cleanString(req.body && req.body.name, { field: 'Name', max: 100 });
+    email = cleanEmail(req.body && req.body.email);
+    cleanPassword(password);
+  } catch (e) {
+    if (e instanceof ValidationError) {
+      return res.status(400).json({ message: e.message });
+    }
+    throw e;
   }
 
   try {
     const passwordHash = await hashPassword(password);
     const { rows } = await db.query(
       `insert into users (name, email, password_hash) values ($1, $2, $3) returning ${COLUMNS}`,
-      [name.trim(), email.trim(), passwordHash]
+      [name, email, passwordHash]
     );
 
     const user = rows[0];
@@ -156,7 +164,10 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body || {};
 
-  if (!email || !password) {
+  // Bentuk + panjang dicek sebelum kena DB/scrypt — jangan biarkan input
+  // raksasa makan CPU scrypt. Tipe nggak valid tetap 400, bukan 500.
+  if (typeof email !== 'string' || typeof password !== 'string' ||
+      email.length > 254 || password.length === 0 || password.length > 128) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
@@ -245,17 +256,21 @@ router.put('/me', requireAuth, async (req, res) => {
     const vals = [];
 
     if (name !== undefined) {
-      if (!String(name).trim()) {
-        return res.status(400).json({ message: 'Name nggak boleh kosong' });
+      // Server-side validation: nama wajib teks non-kosong, maks 100 char.
+      try {
+        vals.push(cleanString(name, { field: 'Name', max: 100 }));
+      } catch (e) {
+        return res.status(400).json({ message: e.message });
       }
-      vals.push(String(name).trim());
       sets.push(`name = $${vals.length}`);
     }
 
     if (email !== undefined) {
-      const e = String(email).trim();
-      if (!isValidEmail(e)) {
-        return res.status(400).json({ message: 'Valid email is required' });
+      let e;
+      try {
+        e = cleanEmail(email);
+      } catch (err) {
+        return res.status(400).json({ message: err.message });
       }
       // cek unik: email milik user lain?
       const dup = await db.query(
@@ -277,7 +292,9 @@ router.put('/me', requireAuth, async (req, res) => {
       if (!ok) {
         return res.status(401).json({ message: 'Current password salah' });
       }
-      if (typeof password !== 'string' || password.length < 8 ||
+      // Password baru: panjang + komposisi (aturan lama dipertahankan),
+      // plus batas atas supaya scrypt nggak disuapi input raksasa.
+      if (typeof password !== 'string' || password.length < 8 || password.length > 128 ||
           !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
         return res.status(400).json({
           message: 'Password minimal 8 karakter, harus ada huruf besar, kecil, dan angka'

@@ -11,6 +11,8 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
+const { rateLimit } = require('../lib/ratelimit');
+const { assertSafePublicUrl } = require('../lib/ssrf');
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
@@ -22,7 +24,17 @@ const PLATFORMS = ['tiktok', 'youtube', 'facebook', 'instagram'];
 // util fetch
 // ---------------------------------------------------------------------------
 function fetchWithTimeout(url, opts = {}, ms = TIMEOUT_MS) {
-  return fetch(url, { ...opts, signal: AbortSignal.timeout(ms) });
+  // redirect: 'manual' — jangan ikuti redirect otomatis; kalau provider
+  // me-redirect ke host internal, SSRF guard di atas nggak akan lihat itu.
+  return fetch(url, { ...opts, redirect: 'manual', signal: AbortSignal.timeout(ms) })
+    .then((r) => {
+      if (r.status >= 300 && r.status < 400 && r.headers.get('location')) {
+        const err = new Error('provider redirect tidak diikuti (keamanan SSRF)');
+        err.status = 502;
+        return Promise.reject(err);
+      }
+      return r;
+    });
 }
 
 function isHttpUrl(s) {
@@ -33,6 +45,7 @@ function isHttpUrl(s) {
     return false;
   }
 }
+void isHttpUrl; // dipertahankan untuk kompatibilitas (dipakai tes lama)
 
 /** Bungkus hasil jadi format respons standar. */
 function ok(platform, url, media, extra = {}) {
@@ -400,6 +413,10 @@ async function instagram(rawUrl) {
 // ---------------------------------------------------------------------------
 router.use(requireAuth);
 
+// Downloader = resource mahal (fetch provider eksternal 15s timeout).
+// Limit 20 req/menit per IP — jauh lebih ketat dari global.
+const downloadLimiter = rateLimit(20, { scope: 'download' });
+
 /**
  * @swagger
  * /api/download/{platform}:
@@ -428,7 +445,7 @@ router.use(requireAuth);
  *       404: { description: Platform tidak dikenal }
  *       502: { description: Sumber pihak ketiga gagal atau media tidak tersedia }
  */
-router.get('/:platform', async (req, res, next) => {
+router.get('/:platform', downloadLimiter, async (req, res, next) => {
   const platform = (req.params.platform || '').toLowerCase();
   const url = (req.query.url || '').trim();
 
@@ -439,11 +456,21 @@ router.get('/:platform', async (req, res, next) => {
     });
   }
 
-  if (!url || !isHttpUrl(url)) {
+  // Validasi + SSRF guard: tolak skema non-http, host internal/private,
+  // cloud metadata, penyamaran IP (desimal/hex/oktal), dan DNS ke IP privat.
+  if (!url) {
     return res.status(400).json({
       ok: false,
       message: "Query '?url=' wajib diisi dengan URL http(s) yang valid.",
     });
+  }
+  if (url.length > 2048) {
+    return res.status(400).json({ ok: false, message: 'URL terlalu panjang (maksimal 2048 karakter).' });
+  }
+  try {
+    await assertSafePublicUrl(url);
+  } catch (e) {
+    return res.status(400).json({ ok: false, message: e.message });
   }
 
   try {
