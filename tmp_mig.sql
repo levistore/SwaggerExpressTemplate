@@ -1,0 +1,1 @@
+alter table idempotency_keys alter column response_body type text using response_body::text;

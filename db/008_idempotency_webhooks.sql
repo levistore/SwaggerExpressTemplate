@@ -8,7 +8,7 @@ create table if not exists idempotency_keys (
   request_fingerprint text not null,
   endpoint text not null,
   response_status integer not null,
-  response_body jsonb not null,
+  response_body text not null,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
   idem_key text not null,
