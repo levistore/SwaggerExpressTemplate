@@ -131,6 +131,35 @@ API ini sudah menerapkan hardening berikut (tanpa mengubah perilaku endpoint yan
 > server-side, access token pendek umurninya).
 
 
+
+### Developer Dashboard (Phase 4)
+
+Halaman **`/dashboard`** (login wajib) — data 100% milik user yang login
+(user-scoped di server, tanpa parameter user_id):
+
+- **Overview**: total requests, requests hari ini, kuota harian agregat,
+  API keys aktif, recent requests + recent activity (audit), onboarding singkat.
+- **API Keys**: list (prefix saja), create (pilih scopes + expiry), revoke,
+  rotate. Raw key hanya tampil SEKALI di modal sekali-lihat — tidak pernah
+  disimpan di database, analytics, atau localStorage, dan tidak bisa diminta ulang.
+- **Usage**: distribusi status code, endpoint teratas, grafik harian (CSS bars,
+  tanpa library), durasi rata-rata — range 24h/7d/30d.
+- **Requests**: riwayat dengan pagination, filter status/endpoint/rentang.
+  Hanya metadata operasional (method, route, status, durasi, request_id) —
+  tanpa header/credential apa pun.
+
+Endpoint backend: `GET /api/v1/dashboard/overview`, `/usage`, `/requests`
+(semua authenticated, user-scoped, parameterized SQL, rate limit 60/m,
+terdokumentasi di OpenAPI).
+
+**Sessions UI**: halaman Account (`/profile`) kini menampilkan session aktif
+(metadata aman: user agent, IP, penanda current) dengan revoke per session dan
+logout-all.
+
+**Playground**: kini menampilkan `request_id` dan execution time dari respons nyata.
+
+**Docs**: quickstart (base URL, auth, contoh curl) + changelog developer-facing.
+
 ### API versioning & response envelope (Phase 3)
 
 - **`/api/v1/...` = canonical API.** Router yang sama dengan legacy, format

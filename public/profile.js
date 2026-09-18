@@ -138,6 +138,41 @@
     }).finally(function () { btn.disabled = false; });
   }
 
+  // ------------------------------------------------------------------
+  // sessions (metadata aman saja dari server)
+  // ------------------------------------------------------------------
+  function loadSessions() {
+    var el = q('#sessList');
+    if (!el) return;
+    L.api('GET', '/api/auth/sessions').then(function (list) {
+      var rows = Array.isArray(list) ? list : (list.sessions || []);
+      if (!rows.length) { el.innerHTML = '<p class="muted">Tidak ada session aktif tercatat.</p>'; return; }
+      el.innerHTML = rows.map(function (s) {
+        var cur = String(s.id) === String(L.getSessionId());
+        return '<div class="mini-row"><span class="mono">' + esc(s.user_agent || 'unknown device') + '</span>' +
+          '<span class="muted">' + esc(s.ip || '') + '</span>' +
+          (cur ? '<span class="chip chip--green">current</span>' : '') +
+          (cur ? '' : '<button class="btn btn--ghost btn--sm" data-sid="' + esc(s.id) + '">Revoke</button>') +
+          '</div>';
+      }).join('');
+      el.onclick = function (ev) {
+        var b = ev.target.closest('[data-sid]');
+        if (!b) return;
+        L.api('DELETE', '/api/auth/sessions/' + b.getAttribute('data-sid')).then(function () {
+          L.toast('Session revoked', 'ok'); loadSessions();
+        }).catch(function (err) { L.toast(err.message, 'error'); });
+      };
+    }).catch(function () { el.innerHTML = '<p class="muted">Gagal memuat sessions.</p>'; });
+  }
+
+  function doLogoutAll() {
+    L.api('POST', '/api/auth/logout-all').then(function () {
+      L.setToken(''); L.setRefresh(''); L.setSessionId('');
+      L.toast('Semua session di-revoke — login ulang.', 'ok');
+      setTimeout(function () { window.location.href = '/profile'; }, 800);
+    }).catch(function (err) { L.toast(err.message || 'Gagal', 'error'); });
+  }
+
   function doLogout() {
     L.setToken('');
     window.location.href = '/';
@@ -152,6 +187,9 @@
 
     if (hasToken) {
       loadMe().catch(function () { /* sudah ditangani loadMe */ });
+      loadSessions();
+      var bAll = q('#btnLogoutAll');
+      if (bAll) bAll.addEventListener('click', doLogoutAll);
     } else {
       showAuth(params.get('mode') === 'register' ? 'register' : 'login');
     }

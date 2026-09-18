@@ -310,7 +310,7 @@
     q('#respTime').textContent = '';
   }
 
-  function showResponse(status, data, ms, ep) {
+  function showResponse(status, data, ms, ep, reqId) {
     q('#respEmpty').hidden = true;
     q('#respBox').hidden = false;
     q('#respTime').textContent = ms + ' ms';
@@ -318,7 +318,7 @@
     var st = q('#respStatus');
     st.className = 'resp-box__status ' + (status >= 200 && status < 300 ? 'is-ok' : 'is-err');
     st.textContent = 'HTTP ' + status;
-    q('#respMeta').textContent = ep ? ep.path : '';
+    q('#respMeta').textContent = (ep ? ep.path : '') + (reqId ? '  ·  request_id: ' + reqId : '');
 
     // media links (respons downloader)
     var media = q('#respMedia');
@@ -372,15 +372,16 @@
 
     fetch(buildUrl(ep, c.query), opts)
       .then(function (res) {
+        var reqId = res.headers.get('x-request-id') || '';
         return res.text().then(function (txt) {
           var data = null;
           try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = { raw: txt }; }
-          showResponse(res.status, data, Math.round(performance.now() - t0), ep);
+          showResponse(res.status, data, Math.round(performance.now() - t0), ep, reqId);
           if (!res.ok) L.toast('Request selesai dengan status ' + res.status, res.status >= 500 ? 'error' : '');
         });
       })
       .catch(function (err) {
-        showResponse(0, { ok: false, message: String(err && err.message || err) }, Math.round(performance.now() - t0), ep);
+        showResponse(0, { ok: false, message: String(err && err.message || err) }, Math.round(performance.now() - t0), ep, '');
         L.toast('Request gagal: jaringan/server nggak bisa dihubungi', 'error');
       })
       .finally(function () { btn.disabled = false; });

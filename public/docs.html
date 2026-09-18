@@ -158,6 +158,26 @@
         </div>
       </div>
     </div>
+
+      <!-- Quickstart (Phase 4) -->
+      <div class="doc-block" id="quickstart">
+        <h2>Quickstart — request pertama lu</h2>
+        <p>1. Daftar/login → 2. Buat API key di <a href="/dashboard?tab=keys">Dashboard</a> → 3. Kirim request:</p>
+        <pre>curl "https://swagger-express-template-beta.vercel.app/api/v1/download/tiktok?url=HTTPS_URL_VIDEO" \
+  -H "Authorization: Bearer lcode_live_KEY_LU"</pre>
+        <p class="muted">Base URL produksi: <code>https://swagger-express-template-beta.vercel.app</code>. Canonical API: <code>/api/v1/...</code> (envelope <code>{success, data|error, request_id}</code>). Path <code>/api/...</code> legacy tetap jalan. Spec programatis: <a href="/api/docs.json">/api/docs.json</a>.</p>
+        <p>Quota per API key: 60 req/menit, 1000 req/hari (default). Cek header <code>X-Quota-Daily-Remaining</code> di respons.</p>
+      </div>
+
+      <!-- Changelog (Phase 4) -->
+      <div class="doc-block" id="changelog">
+        <h2>Changelog</h2>
+        <div class="doc-row"><div><strong>Phase 4</strong> — Developer Dashboard (overview, usage, request history), API key management UI, sessions UI di halaman akun, playground request-id &amp; timing, quickstart + changelog ini.</div></div>
+        <div class="doc-row"><div><strong>Phase 3</strong> — API versioning <code>/api/v1</code> dengan response envelope standar, usage tracking (<code>api_usage</code>), quota per API key (60/m + 1000/hari), provider layer downloader, <code>/api/docs.json</code>.</div></div>
+        <div class="doc-row"><div><strong>Phase 2</strong> — Refresh token + session management (rotasi, reuse detection, logout/logout-all), API keys dengan scopes (<code>downloads:read</code>, <code>profile:read</code>, <code>profile:write</code>), audit trail admin.</div></div>
+        <div class="doc-row"><div><strong>Phase 1</strong> — Security hardening: SSRF protection, rate limiting, input validation, security headers, CORS, error standar, request ID, structured logging, 52 security tests.</div></div>
+        <p class="muted">Belum tersedia (pending keputusan): email verification &amp; password reset (Phase 2C). Distributed rate limiting via Redis: dibatalkan sebagai keputusan proyek.</p>
+      </div>
   </div>
 </main>
 

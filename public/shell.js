@@ -255,7 +255,8 @@
     el.innerHTML =
       '<div class="wrap subnav__inner">' +
         '<div class="subnav__tabs">' +
-          tab('/profile', 'layout', 'Overview', active === 'overview') +
+          tab('/dashboard', 'layout', 'Dashboard', active === 'dashboard') +
+          tab('/profile', 'user', 'Account', active === 'overview') +
           tab('/explore', 'terminal', 'API Playground', active === 'playground') +
           tab('/docs', 'book', 'Documentation', active === 'docs') +
           tab('/profile?tab=account', 'user', 'Profile', active === 'profile') +

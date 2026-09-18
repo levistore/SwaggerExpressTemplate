@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Lcode Api</title>
+<meta name="description" content="Developer dashboard Lcode Api: overview, API keys, usage, dan riwayat request.">
+<link rel="icon" href="/maskot.png">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header id="siteHeader" class="site-header"></header>
+<div id="subnav" data-active="dashboard" hidden></div>
+
+<main class="wrap page">
+  <!-- login gate -->
+  <section id="dashAuth" class="card card--pad rv" hidden>
+    <h1 class="card__title">Dashboard Developer</h1>
+    <p class="muted">Masuk dulu untuk melihat overview, API keys, usage, dan riwayat request lu.</p>
+    <div class="row-gap">
+      <a href="/profile"><button class="btn btn--primary">Sign in</button></a>
+      <a href="/profile?mode=register"><button class="btn btn--ghost">Create account</button></a>
+    </div>
+  </section>
+
+  <div id="dashContent" hidden>
+    <!-- ================= Overview ================= -->
+    <section data-tab="overview" class="dash-tab">
+      <h1 class="page-title">Overview</h1>
+      <p class="muted">Ringkasan aktivitas API lu — data nyata dari server, bukan angka demo.</p>
+      <div class="stat-grid" id="ovStats">
+        <div class="card stat"><span class="stat__label">Total Requests</span><span class="stat__value" data-v="total">—</span></div>
+        <div class="card stat"><span class="stat__label">Hari Ini</span><span class="stat__value" data-v="today">—</span></div>
+        <div class="card stat"><span class="stat__label">Quota Harian</span><span class="stat__value" data-v="quota">—</span></div>
+        <div class="card stat"><span class="stat__label">API Keys Aktif</span><span class="stat__value" data-v="keys">—</span></div>
+      </div>
+      <div class="grid-2">
+        <div class="card card--pad">
+          <h2 class="card__title">Recent Requests</h2>
+          <div id="ovRequests" class="mini-list"><p class="muted">Memuat…</p></div>
+        </div>
+        <div class="card card--pad">
+          <h2 class="card__title">Recent Activity</h2>
+          <div id="ovActivity" class="mini-list"><p class="muted">Memuat…</p></div>
+        </div>
+      </div>
+      <div class="card card--pad onboard" id="ovOnboard">
+        <h2 class="card__title">Mulai cepat</h2>
+        <ol class="steps">
+          <li>Buat <a href="/dashboard?tab=keys">API key</a> dan pilih scopes.</li>
+          <li>Baca <a href="/docs">dokumentasi</a> — base URL, auth, contoh request.</li>
+          <li>Kirim request pertama dari <a href="/explore">playground</a>.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ================= API Keys ================= -->
+    <section data-tab="keys" class="dash-tab" hidden>
+      <div class="row-between">
+        <div><h1 class="page-title">API Keys</h1>
+        <p class="muted">Raw key hanya ditampilkan SEKALI saat create/rotate — simpan langsung.</p></div>
+        <button class="btn btn--primary" id="btnNewKey">+ New Key</button>
+      </div>
+      <div id="keyList" class="key-list"><p class="muted">Memuat…</p></div>
+    </section>
+
+    <!-- ================= Usage ================= -->
+    <section data-tab="usage" class="dash-tab" hidden>
+      <div class="row-between">
+        <div><h1 class="page-title">Usage</h1>
+        <p class="muted">Analitik request lu dari tabel api_usage.</p></div>
+        <div class="seg" role="tablist" aria-label="Rentang waktu">
+          <button class="seg__btn is-active" data-range="24h">24 jam</button>
+          <button class="seg__btn" data-range="7d">7 hari</button>
+          <button class="seg__btn" data-range="30d">30 hari</button>
+        </div>
+      </div>
+      <div class="stat-grid" id="usStats">
+        <div class="card stat"><span class="stat__label">Total</span><span class="stat__value" data-v="total">—</span></div>
+        <div class="card stat"><span class="stat__label">Gagal (≥400)</span><span class="stat__value" data-v="fail">—</span></div>
+        <div class="card stat"><span class="stat__label">Rata-rata Durasi</span><span class="stat__value" data-v="avg">—</span></div>
+      </div>
+      <div class="grid-2">
+        <div class="card card--pad">
+          <h2 class="card__title">Per Hari</h2>
+          <div id="usDaily" class="bars" aria-label="Request per hari"></div>
+        </div>
+        <div class="card card--pad">
+          <h2 class="card__title">Status Code</h2>
+          <div id="usStatus" class="mini-list"><p class="muted">Memuat…</p></div>
+        </div>
+      </div>
+      <div class="card card--pad">
+        <h2 class="card__title">Endpoint Teratas</h2>
+        <div id="usEndpoints" class="mini-list"><p class="muted">Memuat…</p></div>
+      </div>
+    </section>
+
+    <!-- ================= Requests ================= -->
+    <section data-tab="requests" class="dash-tab" hidden>
+      <h1 class="page-title">Requests</h1>
+      <p class="muted">Riwayat request milik lu. Tanpa header/credential — hanya metadata operasional.</p>
+      <form class="filters" id="reqFilters">
+        <select id="rfStatus" aria-label="Filter status">
+          <option value="">Semua status</option>
+          <option value="success">Sukses (&lt;400)</option>
+          <option value="error">Error (≥400)</option>
+        </select>
+        <input id="rfEndpoint" type="search" placeholder="Filter endpoint…" aria-label="Filter endpoint">
+        <select id="rfRange" aria-label="Rentang">
+          <option value="24h">24 jam</option>
+          <option value="7d">7 hari</option>
+          <option value="30d">30 hari</option>
+        </select>
+        <button class="btn btn--ghost" type="submit">Terapkan</button>
+      </form>
+      <div class="table-scroll">
+        <table class="tbl" id="reqTable">
+          <thead><tr><th>Waktu</th><th>Method</th><th>Endpoint</th><th>Status</th><th>Durasi</th><th>Request ID</th></tr></thead>
+          <tbody><tr><td colspan="6" class="muted">Memuat…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="row-between">
+        <span class="muted" id="reqTotal"></span>
+        <div class="row-gap">
+          <button class="btn btn--ghost" id="reqPrev">Sebelumnya</button>
+          <button class="btn btn--ghost" id="reqNext">Berikutnya</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer id="siteFooter" class="site-footer"></footer>
+<!-- bottom nav mobile -->
+<nav id="bottomNav" class="bottom-nav" data-active="dashboard" aria-label="Navigasi mobile"></nav>
+
+<!-- modal raw key (sekali lihat) -->
+<div class="modal" id="keyModal" hidden role="dialog" aria-modal="true" aria-labelledby="kmTitle">
+  <div class="modal__box card card--pad">
+    <h2 class="card__title" id="kmTitle">Simpan API key lu sekarang</h2>
+    <p class="muted">Ini satu-satunya kali key ditampilkan penuh. Setelah modal ini ditutup, key <strong>tidak bisa diminta ulang</strong> — cuma prefix-nya yang kelihatan di daftar.</p>
+    <code class="key-reveal" id="kmKey"></code>
+    <div class="row-gap">
+      <button class="btn btn--primary" id="kmCopy">Copy</button>
+      <button class="btn btn--ghost" id="kmClose">Sudah saya simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- modal create key -->
+<div class="modal" id="newKeyModal" hidden role="dialog" aria-modal="true" aria-labelledby="nkTitle">
+  <div class="modal__box card card--pad">
+    <h2 class="card__title" id="nkTitle">API key baru</h2>
+    <form id="nkForm">
+      <label class="field"><span>Nama key</span>
+        <input id="nkName" required maxlength="100" placeholder="Production app"></label>
+      <fieldset class="scopes">
+        <legend>Scopes</legend>
+        <label><input type="checkbox" name="scope" value="downloads:read" checked> downloads:read</label>
+        <label><input type="checkbox" name="scope" value="profile:read"> profile:read</label>
+        <label><input type="checkbox" name="scope" value="profile:write"> profile:write</label>
+      </fieldset>
+      <label class="field"><span>Expires (hari, kosong = tanpa expiry)</span>
+        <input id="nkDays" type="number" min="1" max="3650" placeholder="365"></label>
+      <div class="row-gap">
+        <button class="btn btn--primary" type="submit">Create</button>
+        <button class="btn btn--ghost" type="button" id="nkCancel">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/shell.js"></script>
+<script src="/dashboard.js"></script>
+</body>
+</html>
