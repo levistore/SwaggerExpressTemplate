@@ -102,7 +102,52 @@ async function tiktok(url) {
 // ---------------------------------------------------------------------------
 // YouTube — api.vidssave.com
 // ---------------------------------------------------------------------------
+// YouTube — cobalt community instance (co.otomir23.me) sebagai primer,
+// vidssave sebagai fallback (shorts kadang cuma jalan di vidssave).
+const COBALT = 'https://co.otomir23.me/';
+
+async function cobaltYouTube(rawUrl, downloadMode) {
+  const body = { url: rawUrl, filenameStyle: 'basic' };
+  if (downloadMode) body.downloadMode = downloadMode;
+
+  const r = await fetchWithTimeout(COBALT, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+      'user-agent': UA,
+    },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json();
+
+  if (d.status === 'tunnel' && d.url) {
+    return {
+      kind: downloadMode === 'audio' ? 'audio' : 'video',
+      label: d.filename || (downloadMode === 'audio' ? 'audio' : 'video'),
+      url: d.url,
+    };
+  }
+  const code = d && d.error && d.error.code;
+  throw new Error('cobalt: ' + (code || d.status || r.status));
+}
+
 async function youtube(rawUrl) {
+  // 1. cobalt (jalan dari mayoritas IP, termasuk serverless)
+  const media = [];
+  let cobaltErr = null;
+  for (const mode of [null, 'audio']) {
+    try {
+      media.push(await cobaltYouTube(rawUrl, mode));
+    } catch (e) {
+      cobaltErr = e;
+    }
+  }
+  if (media.length > 0) {
+    return ok('youtube', rawUrl, media, { via: 'cobalt' });
+  }
+
+  // 2. fallback vidssave (format lengkap + shorts)
   const body = new URLSearchParams({
     auth: '20250901majwlqo',
     domain: 'api-ak.vidssave.com',
@@ -137,7 +182,6 @@ async function youtube(rawUrl) {
   }
 
   const v = data.data;
-  const media = [];
   (v.resources || []).forEach((r) => {
     if (!r.download_url) return;
     media.push({
